@@ -4,9 +4,63 @@ const bcrypt = require('bcryptjs');
 const pool = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { parseCsv, toCsv } = require('../lib/csv');
+const { encrypt, decrypt } = require('../lib/crypto');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('ADMIN'));
+
+router.get('/students', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT student_id, lrn, name, date_of_birth, gender, class_id, status
+     FROM students WHERE school_id = $1 ORDER BY class_id, name`,
+    [req.user.school_id]
+  );
+  rows.forEach(r => { if (r.date_of_birth) r.date_of_birth = decrypt(r.date_of_birth); });
+  res.json(rows);
+});
+
+// Right-to-deletion (CLAUDE.md §1.1): permanently removes a student's academic
+// records and login account. The student's own audit trail is purged with the
+// account (nothing left for it to describe); a fresh audit_log row is written
+// for THIS action, attributed to the admin who performed it, as the compliance
+// record that the deletion happened.
+router.delete('/students/:studentId', async (req, res) => {
+  const { studentId } = req.params;
+  const { rows: existing } = await pool.query(
+    'SELECT user_id FROM students WHERE student_id = $1 AND school_id = $2',
+    [studentId, req.user.school_id]
+  );
+  if (!existing[0]) {
+    return res.status(404).json({ error: 'student not found' });
+  }
+  const studentUserId = existing[0].user_id;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM attendance WHERE student_id = $1', [studentId]);
+    await client.query('DELETE FROM grades WHERE student_id = $1', [studentId]);
+    await client.query('DELETE FROM student_guardians WHERE student_id = $1', [studentId]);
+    await client.query('DELETE FROM students WHERE student_id = $1', [studentId]);
+    if (studentUserId) {
+      await client.query('DELETE FROM audit_logs WHERE user_id = $1', [studentUserId]);
+      await client.query('DELETE FROM users WHERE user_id = $1', [studentUserId]);
+    }
+    await client.query(
+      `INSERT INTO audit_logs (audit_id, school_id, user_id, action, table_affected, record_count, status)
+       VALUES ($1, $2, $3, 'RIGHT_TO_DELETION', 'students', 1, 'SUCCESS')`,
+      [crypto.randomUUID(), req.user.school_id, req.user.user_id]
+    );
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.json({ deleted: studentId });
+});
 
 router.get('/school', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM schools WHERE school_id = $1', [req.user.school_id]);
@@ -111,7 +165,7 @@ router.post('/students/import', async (req, res) => {
       if (existing[0]) {
         await client.query(
           'UPDATE students SET name = $1, date_of_birth = $2, gender = $3, class_id = $4 WHERE lrn = $5',
-          [r.name, r.date_of_birth, r.gender, r.class_id, r.lrn]
+          [r.name, encrypt(r.date_of_birth), r.gender, r.class_id, r.lrn]
         );
         updated++;
       } else {
@@ -119,7 +173,7 @@ router.post('/students/import', async (req, res) => {
         await client.query(
           `INSERT INTO students (student_id, lrn, school_id, class_id, name, date_of_birth, gender, status)
            VALUES ($1, $2, $3, $4, $5, $6, $7, 'Active')`,
-          [studentId, r.lrn, req.user.school_id, r.class_id, r.name, r.date_of_birth, r.gender]
+          [studentId, r.lrn, req.user.school_id, r.class_id, r.name, encrypt(r.date_of_birth), r.gender]
         );
         inserted++;
       }
@@ -189,6 +243,7 @@ router.get('/reports/grades', async (req, res) => {
 const EXPORTABLE = {
   students: {
     columns: ['student_id', 'lrn', 'name', 'date_of_birth', 'gender', 'class_id', 'status'],
+    decryptFields: ['date_of_birth'],
     query: (schoolId, { class_id }) => ({
       sql: `SELECT student_id, lrn, name, date_of_birth, gender, class_id, status
             FROM students WHERE school_id = $1 ${class_id ? 'AND class_id = $2' : ''} ORDER BY class_id, lrn`,
@@ -237,6 +292,13 @@ router.get('/export/:table', async (req, res) => {
   }
   const { sql, params } = spec.query(req.user.school_id, req.query);
   const { rows } = await pool.query(sql, params);
+  if (spec.decryptFields) {
+    for (const row of rows) {
+      for (const field of spec.decryptFields) {
+        if (row[field] != null) row[field] = decrypt(row[field]);
+      }
+    }
+  }
   const csv = toCsv(spec.columns, rows);
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${req.params.table}.csv"`);

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
+import { cachedFetch } from '../../lib/offlineCache';
+import { enqueue } from '../../lib/offlineQueue';
 
 const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
 const PERIODS = ['First Grading', 'Second Grading', 'Third Grading', 'Fourth Grading'];
@@ -17,27 +19,33 @@ export default function TeacherGrades() {
   const [roster, setRoster] = useState([]);
   const [scores, setScores] = useState({});
   const [error, setError] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.myClasses(session.token).then(cs => {
-      setClasses(cs);
-      if (cs[0]) setClassId(cs[0].class_id);
-    }).catch(err => setError(err.message));
+    cachedFetch('teacher_classes', () => api.myClasses(session.token))
+      .then(({ data, fromCache }) => {
+        setClasses(data);
+        if (data[0]) setClassId(data[0].class_id);
+        if (fromCache) setNotice('Showing your classes from the last time you were online.');
+      })
+      .catch(err => setError(err.message));
   }, [session]);
 
   useEffect(() => {
     if (!classId) return;
-    setSaved(false);
-    api.classRoster(session.token, classId).then(students => {
-      setRoster(students);
-      setScores(prev => {
-        const next = {};
-        students.forEach(s => { next[s.student_id] = prev[s.student_id] || {}; });
-        return next;
-      });
-    }).catch(err => setError(err.message));
+    setNotice('');
+    cachedFetch(`roster_${classId}`, () => api.classRoster(session.token, classId))
+      .then(({ data: students, fromCache }) => {
+        setRoster(students);
+        if (fromCache) setNotice('Showing this class roster from the last time you were online.');
+        setScores(prev => {
+          const next = {};
+          students.forEach(s => { next[s.student_id] = prev[s.student_id] || {}; });
+          return next;
+        });
+      })
+      .catch(err => setError(err.message));
   }, [classId, session]);
 
   function setScore(studentId, field, value) {
@@ -46,18 +54,21 @@ export default function TeacherGrades() {
 
   async function handleSave() {
     setError('');
+    setNotice('');
     setSaving(true);
+    const records = roster.map(s => {
+      const row = scores[s.student_id] || {};
+      const record = { student_id: s.student_id };
+      FIELDS.forEach(f => { if (row[f] !== undefined && row[f] !== '') record[f] = Number(row[f]); });
+      return record;
+    });
     try {
-      const records = roster.map(s => {
-        const row = scores[s.student_id] || {};
-        const record = { student_id: s.student_id };
-        FIELDS.forEach(f => { if (row[f] !== undefined && row[f] !== '') record[f] = Number(row[f]); });
-        return record;
-      });
+      if (!navigator.onLine) throw new Error('offline');
       await api.enterGrades(session.token, classId, subject, gradingPeriod, records);
-      setSaved(true);
-    } catch (err) {
-      setError(err.message);
+      setNotice(`Grades saved for ${subject} — ${gradingPeriod}.`);
+    } catch {
+      enqueue({ kind: 'grades', token: session.token, classId, subject, gradingPeriod, records });
+      setNotice(`You're offline — grades for ${subject} — ${gradingPeriod} are queued and will sync automatically.`);
     } finally {
       setSaving(false);
     }
@@ -90,7 +101,7 @@ export default function TeacherGrades() {
         </div>
 
         {error && <div className="error-banner">{error}</div>}
-        {saved && <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>Grades saved for {subject} — {gradingPeriod}.</div>}
+        {notice && <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>{notice}</div>}
 
         {roster.length === 0 ? (
           <div className="empty-state">No students in this class.</div>

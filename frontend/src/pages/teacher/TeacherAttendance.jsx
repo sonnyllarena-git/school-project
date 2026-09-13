@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
+import { cachedFetch } from '../../lib/offlineCache';
+import { enqueue } from '../../lib/offlineQueue';
 
 const STATUSES = ['PRESENT', 'ABSENT', 'TARDY'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -14,37 +16,51 @@ export default function TeacherAttendance() {
   const [roster, setRoster] = useState([]);
   const [marks, setMarks] = useState({});
   const [error, setError] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.myClasses(session.token).then(cs => {
-      setClasses(cs);
-      if (cs[0]) setClassId(cs[0].class_id);
-    }).catch(err => setError(err.message));
+    cachedFetch('teacher_classes', () => api.myClasses(session.token))
+      .then(({ data, fromCache }) => {
+        setClasses(data);
+        if (data[0]) setClassId(data[0].class_id);
+        if (fromCache) setNotice('Showing your classes from the last time you were online.');
+      })
+      .catch(err => setError(err.message));
   }, [session]);
 
   useEffect(() => {
     if (!classId) return;
-    setSaved(false);
-    Promise.all([api.classRoster(session.token, classId), api.getAttendance(session.token, classId, date)])
-      .then(([students, existing]) => {
+    setNotice('');
+    cachedFetch(`roster_${classId}`, () => api.classRoster(session.token, classId))
+      .then(({ data: students, fromCache }) => {
         setRoster(students);
-        const existingByStudent = Object.fromEntries(existing.map(r => [r.student_id, r.status]));
-        setMarks(Object.fromEntries(students.map(s => [s.student_id, existingByStudent[s.student_id] || 'PRESENT'])));
+        if (fromCache) setNotice('Showing this class roster from the last time you were online.');
+        return api.getAttendance(session.token, classId, date)
+          .then(existing => {
+            const existingByStudent = Object.fromEntries(existing.map(r => [r.student_id, r.status]));
+            setMarks(Object.fromEntries(students.map(s => [s.student_id, existingByStudent[s.student_id] || 'PRESENT'])));
+          })
+          .catch(() => {
+            // offline: no way to know today's existing marks yet — default everyone to PRESENT
+            setMarks(Object.fromEntries(students.map(s => [s.student_id, 'PRESENT'])));
+          });
       })
       .catch(err => setError(err.message));
   }, [classId, date, session]);
 
   async function handleSave() {
     setError('');
+    setNotice('');
     setSaving(true);
+    const records = roster.map(s => ({ student_id: s.student_id, status: marks[s.student_id] }));
     try {
-      const records = roster.map(s => ({ student_id: s.student_id, status: marks[s.student_id] }));
+      if (!navigator.onLine) throw new Error('offline');
       await api.markAttendance(session.token, classId, date, records);
-      setSaved(true);
-    } catch (err) {
-      setError(err.message);
+      setNotice(`Attendance saved for ${date}.`);
+    } catch {
+      enqueue({ kind: 'attendance', token: session.token, classId, date, records });
+      setNotice(`You're offline — attendance for ${date} is queued and will sync automatically.`);
     } finally {
       setSaving(false);
     }
@@ -69,7 +85,7 @@ export default function TeacherAttendance() {
         </div>
 
         {error && <div className="error-banner">{error}</div>}
-        {saved && <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>Attendance saved for {date}.</div>}
+        {notice && <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>{notice}</div>}
 
         {roster.length === 0 ? (
           <div className="empty-state">No students in this class.</div>

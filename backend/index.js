@@ -6,6 +6,9 @@ const adminRoutes = require('./src/routes/admin');
 const teacherRoutes = require('./src/routes/teacher');
 const studentRoutes = require('./src/routes/student');
 const parentRoutes = require('./src/routes/parent');
+const statusRoutes = require('./src/routes/status');
+const { checkNow } = require('./src/lib/status');
+const { runBackup } = require('./src/lib/backup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +25,27 @@ app.use('/admin', adminRoutes);
 app.use('/teacher', teacherRoutes);
 app.use('/student', studentRoutes);
 app.use('/parent', parentRoutes);
+app.use('/status', statusRoutes);
+
+const HEALTH_CHECK_INTERVAL_MS = 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const BACKUP_HOUR_UTC = 19; // ~3am Philippines time (UTC+8)
+
+function scheduleDailyBackup() {
+  const now = new Date();
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BACKUP_HOUR_UTC, 0, 0));
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+  setTimeout(function trigger() {
+    runBackup({ triggeredBy: 'daily-automated' }).catch(err => console.error('Automated backup failed:', err.message));
+    setInterval(() => {
+      runBackup({ triggeredBy: 'daily-automated' }).catch(err => console.error('Automated backup failed:', err.message));
+    }, DAY_MS);
+  }, next.getTime() - now.getTime());
+}
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
+  setInterval(() => { checkNow().catch(() => {}); }, HEALTH_CHECK_INTERVAL_MS);
+  checkNow().catch(() => {});
+  scheduleDailyBackup();
 });

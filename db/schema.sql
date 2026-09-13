@@ -52,6 +52,9 @@ CREATE TABLE classes (
 
 -- user_id is nullable: a school may not issue portal logins to its
 -- youngest students, but one is required to use the Student view (Task K).
+-- date_of_birth is TEXT, not DATE: it stores AES-256-GCM ciphertext
+-- (backend/src/lib/crypto.js), never queried/sorted on, only encrypted on
+-- write and decrypted on read by the app.
 CREATE TABLE students (
   student_id    TEXT PRIMARY KEY,
   lrn           TEXT NOT NULL UNIQUE,
@@ -59,7 +62,7 @@ CREATE TABLE students (
   class_id      TEXT REFERENCES classes(class_id),
   user_id       TEXT UNIQUE REFERENCES users(user_id),
   name          TEXT NOT NULL,
-  date_of_birth DATE,
+  date_of_birth TEXT,
   gender        TEXT,
   status        TEXT NOT NULL DEFAULT 'Active',
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()

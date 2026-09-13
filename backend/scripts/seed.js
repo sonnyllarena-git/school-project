@@ -1,6 +1,7 @@
 require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
 const { Client } = require('pg');
+const { encrypt } = require('../src/lib/crypto');
 
 const SCHOOL_ID = 'STM001';
 const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
@@ -105,7 +106,7 @@ async function main() {
 
       const studentHash = await bcrypt.hash(`Student@${lrn}`, 10);
       studentUserRows.push([studentUserId, SCHOOL_ID, `student.${lrn}@stmichaels.ph`, studentHash, 'STUDENT', `${first} ${last}`]);
-      studentRows.push([studentId, lrn, SCHOOL_ID, classId, studentUserId, `${first} ${last}`, dob, isMale ? 'M' : 'F', 'Active']);
+      studentRows.push([studentId, lrn, SCHOOL_ID, classId, studentUserId, `${first} ${last}`, encrypt(dob), isMale ? 'M' : 'F', 'Active']);
 
       for (const day of schoolDays) {
         const roll = Math.random();
@@ -149,7 +150,7 @@ async function main() {
     const hash = await bcrypt.hash(`Parent@${guardianSeq}`, 10);
     const childSurname = studentRows[i][5].split(' ').pop();
     guardianUserRows.push([userId, SCHOOL_ID, `parent.${guardianSeq}@stmichaels.ph`, hash, 'PARENT', `Guardian of ${childSurname} family`]);
-    guardianRows.push([guardianId, userId, `0917${pad(randInt(0, 9999999), 7)}`]);
+    guardianRows.push([guardianId, userId, encrypt(`0917${pad(randInt(0, 9999999), 7)}`)]);
     linkRows.push([studentRows[i][0], guardianId]);
     if (studentRows[i + 1]) linkRows.push([studentRows[i + 1][0], guardianId]);
     guardianSeq++;

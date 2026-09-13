@@ -121,3 +121,39 @@ dashboard → each nav page → real data from the seeded DB), console clean, no
 Found and fixed one real bug this way (guardian display name), which a status-code-only check
 would have missed — see LESSONS.md.
 
+---
+
+## Phase 2: Compliance & Resilience (CLAUDE.md §1 red flags not covered above)
+
+- [x] **Task O: Field-Level Encryption (AES-256)**
+  - Encrypt `students.date_of_birth` and `guardians.phone` at the application layer (Node `crypto`, `aes-256-gcm`)
+  - Name/LRN/etc. stay plaintext — they're used for sort/search/joins; encrypting them needs deterministic
+    encryption, a bigger design decision, deliberately not taken on here
+  - Verify: raw DB value is ciphertext; app reads/exports show correct plaintext
+  - Pass condition: matches CLAUDE.md §1.1 "encrypted at rest (AES-256)"
+
+- [x] **Task P: Offline-First (Attendance & Grades)**
+  - Service worker caches the app shell so the UI itself loads with no network
+  - Teacher attendance/grade saves: on network failure, queue locally (localStorage) and sync automatically
+    when back online; roster is cached locally after first successful load so it's available offline too
+  - Verify: go offline mid-session, mark attendance, see it queued, go back online, see it sync
+  - Pass condition: matches CLAUDE.md §1.4 (offline-first core features, sync on reconnect)
+  - Note: conflict resolution (last-write-wins + timestamp) already exists at the DB layer via each
+    table's `recorded_at = now()` upsert — no extra work needed there
+
+- [x] **Task Q: Disaster Recovery — Backups & Status Page**
+  - Backup script: dumps all tables to a timestamped JSON file, logs a row in `backups`, prunes files older
+    than 30 days
+  - Public `/status` endpoint (no auth) + a public status page showing current health and recent history
+  - Verify: run backup script, confirm file + `backups` row; hit `/status` with no token, see history
+  - Pass condition: matches CLAUDE.md §1.5 (daily backup, 30-day retention, public status page)
+  - Note: DB failover replica / zero-downtime deploy are hosting-tier decisions (managed Postgres plan,
+    host's deploy pipeline), not application code — flagged, not built here
+
+- [x] **Task R: Right-to-Deletion**
+  - `GET /admin/students` (roster list), `DELETE /admin/students/:studentId` (cascades attendance/grades/
+    guardian links, audit-logged)
+  - Admin UI: students list page with a delete action (confirm before deleting)
+  - Verify: delete a student, confirm all related rows are gone and an audit_log entry exists
+  - Pass condition: matches CLAUDE.md §1.1 "Right-to-deletion feature"
+

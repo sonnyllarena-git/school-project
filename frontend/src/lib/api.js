@@ -30,6 +30,8 @@ export const api = {
   listTeachers: token => request('/admin/teachers', { token }),
   createTeacher: (token, data) => request('/admin/teachers', { method: 'POST', token, body: data }),
   importStudents: (token, csv) => request('/admin/students/import', { method: 'POST', token, body: { csv } }),
+  listStudents: token => request('/admin/students', { token }),
+  deleteStudent: (token, studentId) => request(`/admin/students/${studentId}`, { method: 'DELETE', token }),
   attendanceReport: token => request('/admin/reports/attendance', { token }),
   gradesReport: token => request('/admin/reports/grades', { token }),
   exportUrl: (table, params = {}) => {
