@@ -51,12 +51,13 @@ router.get('/schedule', async (req, res) => {
     [studentId]
   );
   const gradeLevel = classRows[0]?.grade_level;
+  const section = classRows[0]?.section;
   if (gradeLevel == null) return res.json({ grade_level: null, section: null, subjects: [] });
 
   const { rows: subjects } = await pool.query(
     `SELECT subject_id, code, name, schedule_days, start_time, end_time, room
-     FROM subjects WHERE school_id = $1 AND grade_level = $2 ORDER BY start_time NULLS LAST, name`,
-    [req.user.school_id, gradeLevel]
+     FROM subjects WHERE school_id = $1 AND grade_level = $2 AND section = $3 ORDER BY start_time NULLS LAST, name`,
+    [req.user.school_id, gradeLevel, section]
   );
   const { rows: assignments } = await pool.query(
     `SELECT ts.subject_id, u.name AS teacher_name
@@ -106,14 +107,19 @@ router.get('/certificate', async (req, res) => {
     [studentId, NEXT_SCHOOL_YEAR, 'CERTIFICATE_ISSUED']
   );
   if (!rows[0]) return res.status(404).json({ error: 'no issued certificate yet' });
-  const { rows: studentRows } = await pool.query('SELECT name, lrn, school_id FROM students WHERE student_id = $1', [studentId]);
+  const { rows: studentRows } = await pool.query(
+    `SELECT s.name, s.lrn, s.school_id, c.section
+     FROM students s LEFT JOIN classes c ON c.class_id = s.class_id
+     WHERE s.student_id = $1`,
+    [studentId]
+  );
   const { rows: schoolRows } = await pool.query('SELECT name, principal, deped_id FROM schools WHERE school_id = $1', [studentRows[0].school_id]);
   res.json({
     student_name: studentRows[0].name,
     lrn: studentRows[0].lrn,
     school_year: rows[0].school_year,
     grade_level: rows[0].grade_level,
-    section: 'A',
+    section: studentRows[0].section,
     subjects: SUBJECTS,
     issued_at: rows[0].certificate_issued_at,
     school: schoolRows[0],

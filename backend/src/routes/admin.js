@@ -132,13 +132,13 @@ router.get('/teachers', async (req, res) => {
 });
 
 // Subject-teacher assignment (see the Subjects tab / admin/subjects) — each
-// subject is its own row (one per grade instance, admin-creatable, unique
-// code), and one subject can have more than one teacher, so assignment is
-// keyed by subject_id rather than by teacher.
+// subject is its own row (one per grade+section instance, admin-creatable,
+// unique code), and one subject can have more than one teacher, so
+// assignment is keyed by subject_id rather than by teacher.
 router.get('/subjects', async (req, res) => {
   const { rows: subjects } = await pool.query(
-    `SELECT subject_id, grade_level, code, name, schedule_days, start_time, end_time, room
-     FROM subjects WHERE school_id = $1 ORDER BY grade_level, name`,
+    `SELECT subject_id, grade_level, section, code, name, schedule_days, start_time, end_time, room
+     FROM subjects WHERE school_id = $1 ORDER BY grade_level, section, name`,
     [req.user.school_id]
   );
   const { rows: assignments } = await pool.query(
@@ -150,54 +150,97 @@ router.get('/subjects', async (req, res) => {
      ORDER BY u.name`,
     [req.user.school_id]
   );
+  const toSubjectJson = s => ({
+    subject_id: s.subject_id,
+    code: s.code,
+    name: s.name,
+    schedule: { days: s.schedule_days, start_time: s.start_time, end_time: s.end_time, room: s.room },
+    teachers: assignments
+      .filter(a => a.subject_id === s.subject_id)
+      .map(a => ({ teacher_id: a.teacher_id, name: a.teacher_name })),
+  });
   const grades = [];
   for (let grade = 1; grade <= 6; grade++) {
+    const inGrade = subjects.filter(s => s.grade_level === grade);
+    const sections = [...new Set(inGrade.map(s => s.section))].sort();
     grades.push({
       grade_level: grade,
-      subjects: subjects.filter(s => s.grade_level === grade).map(s => ({
-        subject_id: s.subject_id,
-        code: s.code,
-        name: s.name,
-        schedule: { days: s.schedule_days, start_time: s.start_time, end_time: s.end_time, room: s.room },
-        teachers: assignments
-          .filter(a => a.subject_id === s.subject_id)
-          .map(a => ({ teacher_id: a.teacher_id, name: a.teacher_name })),
+      sections: sections.map(section => ({
+        section,
+        subjects: inGrade.filter(s => s.section === section).map(toSubjectJson),
       })),
     });
   }
   res.json(grades);
 });
 
-// Admin creates a new subject instance for a grade — its own unique code,
-// its own mock schedule. Independent of curriculum.js's fixed SUBJECTS list
-// (grade entry/enrollment display); adding one here does not make it
+// Admin creates a new subject instance for a grade+section — its own unique
+// code, its own mock schedule. Independent of curriculum.js's fixed SUBJECTS
+// list (grade entry/enrollment display); adding one here does not make it
 // gradeable in Teacher > Grades.
 router.post('/subjects', async (req, res) => {
-  const { grade_level, code, name, schedule_days, start_time, end_time, room } = req.body;
+  const { grade_level, section, code, name, schedule_days, start_time, end_time, room } = req.body;
   const gradeLevel = Number(grade_level);
   if (!Number.isInteger(gradeLevel) || gradeLevel < 1 || gradeLevel > 6) {
     return res.status(400).json({ error: 'grade level must be an integer 1-6' });
   }
-  if (!code?.trim() || !name?.trim()) {
-    return res.status(400).json({ error: 'code and name are required' });
+  if (!section?.trim() || !code?.trim() || !name?.trim()) {
+    return res.status(400).json({ error: 'section, code, and name are required' });
   }
   const subjectId = `SUBJ-${crypto.randomUUID().slice(0, 8)}`;
   try {
     await pool.query(
-      `INSERT INTO subjects (subject_id, school_id, grade_level, code, name, schedule_days, start_time, end_time, room)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [subjectId, req.user.school_id, gradeLevel, code.trim(), name.trim(), schedule_days || null, start_time || null, end_time || null, room || null]
+      `INSERT INTO subjects (subject_id, school_id, grade_level, section, code, name, schedule_days, start_time, end_time, room)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [subjectId, req.user.school_id, gradeLevel, section.trim(), code.trim(), name.trim(), schedule_days || null, start_time || null, end_time || null, room || null]
     );
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: `subject code "${code.trim()}" is already in use` });
     throw err;
   }
-  res.status(201).json({ subject_id: subjectId, grade_level: gradeLevel, code: code.trim(), name: name.trim() });
+  res.status(201).json({ subject_id: subjectId, grade_level: gradeLevel, section: section.trim(), code: code.trim(), name: name.trim() });
 });
+
+// Two subject rows' schedules overlap if they share at least one day token
+// (from the free-text `schedule_days`, e.g. "Mon/Wed/Fri") AND their time
+// ranges intersect. Either side missing a schedule can't conflict (nothing
+// to compare).
+function schedulesOverlap(a, b) {
+  if (!a.schedule_days || !a.start_time || !a.end_time) return false;
+  if (!b.schedule_days || !b.start_time || !b.end_time) return false;
+  const aDays = a.schedule_days.split('/').map(d => d.trim());
+  const bDays = b.schedule_days.split('/').map(d => d.trim());
+  if (!aDays.some(d => bDays.includes(d))) return false;
+  return a.start_time < b.end_time && b.start_time < a.end_time;
+}
+
+// A teacher can't be in two places at once — before assigning teacherId to
+// subjectId, check every OTHER subject that teacher is already on for this
+// school for a day/time overlap. Returns the conflicting subject row, or
+// null if there's no conflict (including when subjectId itself has no
+// schedule set yet).
+async function findScheduleConflict(schoolId, teacherId, subjectId) {
+  const { rows: subjRows } = await pool.query(
+    'SELECT schedule_days, start_time, end_time FROM subjects WHERE subject_id = $1 AND school_id = $2',
+    [subjectId, schoolId]
+  );
+  const target = subjRows[0];
+  if (!target) return null;
+  const { rows: others } = await pool.query(
+    `SELECT s.subject_id, s.code, s.name, s.grade_level, s.section, s.schedule_days, s.start_time, s.end_time
+     FROM teacher_subjects ts
+     JOIN subjects s ON s.subject_id = ts.subject_id
+     WHERE ts.teacher_id = $1 AND s.subject_id != $2 AND s.school_id = $3`,
+    [teacherId, subjectId, schoolId]
+  );
+  return others.find(o => schedulesOverlap(target, o)) || null;
+}
 
 // Replaces the full teacher set for one subject — the admin UI always sends
 // the complete checked set, so delete+reinsert in one transaction is simpler
-// and just as correct as a diff.
+// and just as correct as a diff. Every teacher in the requested set is
+// checked for a schedule conflict against their OTHER subjects before
+// anything is written — if any conflict, nothing is applied (all-or-nothing).
 router.put('/subjects/:subjectId/teachers', async (req, res) => {
   const { teacher_ids } = req.body;
   if (!Array.isArray(teacher_ids)) {
@@ -209,11 +252,21 @@ router.put('/subjects/:subjectId/teachers', async (req, res) => {
   );
   if (!subjectRows[0]) return res.status(404).json({ error: 'subject not found' });
   const { rows: valid } = await pool.query(
-    'SELECT teacher_id FROM teachers WHERE school_id = $1 AND teacher_id = ANY($2)',
+    'SELECT t.teacher_id, u.name FROM teachers t JOIN users u ON u.user_id = t.user_id WHERE t.school_id = $1 AND t.teacher_id = ANY($2)',
     [req.user.school_id, teacher_ids]
   );
   if (valid.length !== new Set(teacher_ids).size) {
     return res.status(400).json({ error: 'one or more teacher_ids not found' });
+  }
+
+  for (const teacherId of teacher_ids) {
+    const conflict = await findScheduleConflict(req.user.school_id, teacherId, req.params.subjectId);
+    if (conflict) {
+      const teacherName = valid.find(t => t.teacher_id === teacherId)?.name || teacherId;
+      return res.status(409).json({
+        error: `${teacherName} already teaches ${conflict.name} (${conflict.code}, Grade ${conflict.grade_level} - ${conflict.section}) at an overlapping time.`,
+      });
+    }
   }
 
   const client = await pool.connect();

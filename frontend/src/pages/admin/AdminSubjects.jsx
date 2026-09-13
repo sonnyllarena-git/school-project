@@ -12,6 +12,7 @@ const GRADES = [1, 2, 3, 4, 5, 6];
 export default function AdminSubjects() {
   const { session } = useAuth();
   const [grade, setGrade] = useState(1);
+  const [section, setSection] = useState('');
   const [gradeData, setGradeData] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [error, setError] = useState('');
@@ -30,10 +31,18 @@ export default function AdminSubjects() {
 
   useEffect(load, [session]);
 
-  const subjectsForGrade = gradeData.find(g => g.grade_level === grade)?.subjects || [];
+  const sectionsForGrade = gradeData.find(g => g.grade_level === grade)?.sections || [];
+
+  useEffect(() => {
+    if (sectionsForGrade.length > 0 && !sectionsForGrade.some(s => s.section === section)) {
+      setSection(sectionsForGrade[0].section);
+    }
+  }, [grade, gradeData]);
+
+  const subjectsForSection = sectionsForGrade.find(s => s.section === section)?.subjects || [];
 
   function openDetail(subject) {
-    setDetailSubject({ ...subject, grade_level: grade });
+    setDetailSubject({ ...subject, grade_level: grade, section });
   }
 
   return (
@@ -41,7 +50,7 @@ export default function AdminSubjects() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <h3>Subjects by Grade</h3>
+            <h3>Subjects by Grade & Section</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: -8 }}>
               Click the arrow to see teachers and schedule. Double-click a subject to view full details and assign teachers.
             </p>
@@ -49,17 +58,25 @@ export default function AdminSubjects() {
           <button onClick={() => setAdding(true)}>+ Add Subject</button>
         </div>
         {error && <div className="error-banner">{error}</div>}
+        <div className="form-row">
+          <div style={{ maxWidth: 160 }}>
+            <label>Grade</label>
+            <select value={grade} onChange={e => { setGrade(Number(e.target.value)); setExpanded(null); }}>
+              {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+            </select>
+          </div>
+        </div>
         <div className="tabs">
-          {GRADES.map(g => (
-            <button key={g} className={g === grade ? 'active' : ''} onClick={() => { setGrade(g); setExpanded(null); }}>
-              Grade {g}
+          {sectionsForGrade.map(s => (
+            <button key={s.section} className={s.section === section ? 'active' : ''} onClick={() => { setSection(s.section); setExpanded(null); }}>
+              Section {s.section}
             </button>
           ))}
         </div>
         <table>
           <thead><tr><th></th><th>Code</th><th>Subject</th></tr></thead>
           <tbody>
-            {subjectsForGrade.map(s => (
+            {subjectsForSection.map(s => (
               <Fragment key={s.subject_id}>
                 <tr
                   style={{ cursor: 'pointer' }}
@@ -118,6 +135,7 @@ export default function AdminSubjects() {
         <AddSubjectModal
           token={session.token}
           gradeLevel={grade}
+          section={section}
           onClose={() => setAdding(false)}
           onCreated={() => { load(); setAdding(false); }}
         />

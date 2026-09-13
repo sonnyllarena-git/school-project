@@ -12,7 +12,7 @@ const NEXT_SCHOOL_YEAR = nextSchoolYear(CURRENT_SCHOOL_YEAR);
 
 async function getStudentAndGrade(studentId, schoolId) {
   const { rows } = await pool.query(
-    `SELECT s.student_id, s.name, s.class_id, c.grade_level
+    `SELECT s.student_id, s.name, s.class_id, c.grade_level, c.section
      FROM students s JOIN classes c ON c.class_id = s.class_id
      WHERE s.student_id = $1 AND s.school_id = $2`,
     [studentId, schoolId]
@@ -130,7 +130,18 @@ router.post('/:studentId/issue-certificate', async (req, res) => {
     return res.status(400).json({ error: 'the new school year balance must be fully paid before issuing the certificate', balance: account.balance });
   }
 
-  const newClassId = `CLS${String(enrollment.grade_level).padStart(3, '0')}`;
+  // Promote into the same section letter the student is already in (Grade N
+  // Section X → Grade N+1 Section X) rather than assuming a single class per
+  // grade — sections mean a grade can have more than one class.
+  const student = await getStudentAndGrade(req.params.studentId, req.user.school_id);
+  const { rows: nextClassRows } = await pool.query(
+    'SELECT class_id FROM classes WHERE school_id = $1 AND grade_level = $2 AND section = $3',
+    [req.user.school_id, enrollment.grade_level, student.section]
+  );
+  if (!nextClassRows[0]) {
+    return res.status(400).json({ error: `no class found for Grade ${enrollment.grade_level} - ${student.section}` });
+  }
+  const newClassId = nextClassRows[0].class_id;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -156,7 +167,12 @@ router.get('/:studentId/certificate', async (req, res) => {
     [req.params.studentId, NEXT_SCHOOL_YEAR, 'CERTIFICATE_ISSUED']
   );
   if (!existing[0]) return res.status(404).json({ error: 'no issued certificate for this student/school year' });
-  const { rows: studentRows } = await pool.query('SELECT name, lrn FROM students WHERE student_id = $1', [req.params.studentId]);
+  const { rows: studentRows } = await pool.query(
+    `SELECT s.name, s.lrn, c.section
+     FROM students s LEFT JOIN classes c ON c.class_id = s.class_id
+     WHERE s.student_id = $1`,
+    [req.params.studentId]
+  );
   const { rows: schoolRows } = await pool.query('SELECT name, principal, deped_id FROM schools WHERE school_id = $1', [req.user.school_id]);
 
   res.json({
@@ -164,7 +180,7 @@ router.get('/:studentId/certificate', async (req, res) => {
     lrn: studentRows[0].lrn,
     school_year: existing[0].school_year,
     grade_level: existing[0].grade_level,
-    section: 'A',
+    section: studentRows[0].section,
     subjects: SUBJECTS,
     issued_at: existing[0].certificate_issued_at,
     school: schoolRows[0],

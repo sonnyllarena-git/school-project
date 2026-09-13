@@ -21,15 +21,16 @@ export default function StudentDetailModal({ token, student, onClose }) {
     setSchedule(null);
     api.getSubjects(token).then(grades => {
       const gradeEntry = grades.find(g => g.grade_level === student.grade_level);
+      const sectionEntry = gradeEntry?.sections?.find(s => s.section === student.section);
       setSchedule({
         grade_level: student.grade_level,
         section: student.section,
-        subjects: (gradeEntry?.subjects || []).map(s => ({
+        subjects: (sectionEntry?.subjects || []).map(s => ({
           code: s.code, name: s.name, schedule: s.schedule, teachers: s.teachers.map(t => t.name),
         })),
       });
     }).catch(err => setError(err.message));
-  }, [student.student_id, student.grade_level, token]);
+  }, [student.student_id, student.grade_level, student.section, token]);
 
   return (
     <div className="modal-backdrop center" onClick={onClose}>

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { api } from '../lib/api';
 
-export default function AddSubjectModal({ token, gradeLevel, onClose, onCreated }) {
-  const [form, setForm] = useState({ code: '', name: '', schedule_days: '', start_time: '', end_time: '', room: '' });
+export default function AddSubjectModal({ token, gradeLevel, section, onClose, onCreated }) {
+  const [form, setForm] = useState({ section: section || '', code: '', name: '', schedule_days: '', start_time: '', end_time: '', room: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -33,8 +33,12 @@ export default function AddSubjectModal({ token, gradeLevel, onClose, onCreated 
             {error && <div className="error-banner">{error}</div>}
             <div className="form-row">
               <div>
+                <label>Section</label>
+                <input required placeholder="e.g. A" value={form.section} onChange={e => setForm({ ...form, section: e.target.value })} />
+              </div>
+              <div>
                 <label>Subject Code</label>
-                <input required placeholder="e.g. AP1" value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} />
+                <input required placeholder="e.g. AP1A" value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} />
               </div>
               <div>
                 <label>Subject Name</label>

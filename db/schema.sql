@@ -48,19 +48,21 @@ CREATE TABLE teachers (
   school_id     TEXT NOT NULL REFERENCES schools(school_id)
 );
 
--- Admin-managed subject catalog, one row per (grade, subject) instance — not
--- a fixed list. Each row is its own thing with its own unique code (e.g.
--- "MATH4" for Grade 4 Math is a different row from "MATH1" for Grade 1 Math,
--- even though the subject name is the same), and its own mock class schedule
--- — see the Subjects tab (admin/subjects). `code` is globally unique per
--- school, which also guarantees no two subjects within the same grade share
--- a code. Decoupled from `grades.subject` (free text, used by teacher grade
--- entry) and curriculum.js's SUBJECTS list (used for enrollment/grade-entry
--- display) — this table is about scheduling/staffing, not academic scoring.
+-- Admin-managed subject catalog, one row per (grade, section, subject)
+-- instance — not a fixed list. Each row is its own thing with its own unique
+-- code (e.g. "MATH1A" for Grade 1 Section A Math is a different row from
+-- "MATH1B" for Section B, even though the subject name is the same), and its
+-- own mock class schedule — see the Subjects tab (admin/subjects). `code` is
+-- globally unique per school, which also guarantees no two subjects within
+-- the same grade+section share a code. Decoupled from `grades.subject` (free
+-- text, used by teacher grade entry) and curriculum.js's SUBJECTS list (used
+-- for enrollment/grade-entry display) — this table is about
+-- scheduling/staffing, not academic scoring.
 CREATE TABLE subjects (
   subject_id    TEXT PRIMARY KEY,
   school_id     TEXT NOT NULL REFERENCES schools(school_id),
   grade_level   INT NOT NULL,
+  section       TEXT NOT NULL,
   code          TEXT NOT NULL,
   name          TEXT NOT NULL,
   schedule_days TEXT,    -- mock schedule, free text e.g. "Mon/Wed/Fri"

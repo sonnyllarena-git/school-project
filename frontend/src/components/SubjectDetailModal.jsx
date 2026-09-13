@@ -44,7 +44,7 @@ export default function SubjectDetailModal({ token, subject, allTeachers, onClos
           <div>
             <h3 style={{ margin: 0 }}>{subject.name}</h3>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Code {subject.code} · Grade {subject.grade_level}
+              Code {subject.code} · Grade {subject.grade_level} - {subject.section}
             </div>
           </div>
           <button className="ghost icon-btn" onClick={onClose}><XMarkIcon width={20} /></button>

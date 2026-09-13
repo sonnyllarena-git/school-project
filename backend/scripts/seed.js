@@ -9,15 +9,24 @@ const SCHOOL_YEAR = '2025-2026';
 const GRADING_PERIOD = 'First Grading';
 const PAYMENT_METHODS = ['CASH', 'GCASH', 'BANK_TRANSFER'];
 
+// n:1-8 are unchanged from before sections existed (keeps demo logins
+// teacher.1@ through teacher.8@ stable). n:9-14 are the new Section B
+// advisers, added rather than renumbering anything.
 const TEACHERS = [
-  { n: 1, name: 'Ms. Ana Gonzales', grade: 1 },
-  { n: 2, name: 'Mr. Carlos Ramos', grade: 2 },
-  { n: 3, name: 'Ms. Patricia Cruz', grade: 3 },
-  { n: 4, name: 'Mr. Ramon Santos', grade: 4 },
-  { n: 5, name: 'Ms. Lily Fernandez', grade: 5 },
-  { n: 6, name: 'Mr. Victor Lopez', grade: 6 },
-  { n: 7, name: 'Ms. Rosa Guinto', grade: null },
-  { n: 8, name: 'Mr. Alfonso Reyes', grade: null },
+  { n: 1, name: 'Ms. Ana Gonzales', grade: 1, section: 'A' },
+  { n: 2, name: 'Mr. Carlos Ramos', grade: 2, section: 'A' },
+  { n: 3, name: 'Ms. Patricia Cruz', grade: 3, section: 'A' },
+  { n: 4, name: 'Mr. Ramon Santos', grade: 4, section: 'A' },
+  { n: 5, name: 'Ms. Lily Fernandez', grade: 5, section: 'A' },
+  { n: 6, name: 'Mr. Victor Lopez', grade: 6, section: 'A' },
+  { n: 7, name: 'Ms. Rosa Guinto', grade: null, section: null },
+  { n: 8, name: 'Mr. Alfonso Reyes', grade: null, section: null },
+  { n: 9, name: 'Ms. Teresa Mercado', grade: 1, section: 'B' },
+  { n: 10, name: 'Mr. Eduardo Bautista', grade: 2, section: 'B' },
+  { n: 11, name: 'Ms. Carmela Dato', grade: 3, section: 'B' },
+  { n: 12, name: 'Mr. Francisco Ignacio', grade: 4, section: 'B' },
+  { n: 13, name: 'Ms. Beatriz Torres', grade: 5, section: 'B' },
+  { n: 14, name: 'Mr. Gabriel Navarro', grade: 6, section: 'B' },
 ];
 
 const MALE_FIRST = ['Miguel', 'Luis', 'Robert', 'Jose', 'Juan', 'Antonio', 'Manuel', 'Francisco', 'Ricardo', 'Eduardo', 'Rafael', 'Gabriel'];
@@ -82,15 +91,22 @@ async function main() {
   const classRows = [];
   for (const t of TEACHERS) {
     if (t.grade === null) continue;
-    classRows.push([`CLS${pad(t.grade, 3)}`, SCHOOL_ID, t.grade, 'A', `TCH-${pad(t.n, 3)}`, `${100 + t.grade * 10}`, '2025-2026']);
+    const classId = `CLS${pad(t.grade, 3)}${t.section}`;
+    const room = `${100 + t.grade * 10 + (t.section === 'B' ? 1 : 0)}`;
+    classRows.push([classId, SCHOOL_ID, t.grade, t.section, `TCH-${pad(t.n, 3)}`, room, '2025-2026']);
   }
   await bulkInsert(client, 'classes', ['class_id', 'school_id', 'grade_level', 'section', 'teacher_id', 'room', 'school_year'], classRows);
 
-  // One subject "instance" per (grade, subject) — each gets its own unique
-  // code (e.g. MATH1 for Grade 1 Math, MATH4 for Grade 4 Math) and its own
-  // mock class schedule. Schedule pattern is fixed per subject name (same
-  // time-of-day story across grades, different room per grade) — illustrative
-  // only, not sourced from any real timetable.
+  // One subject "instance" per (grade, section, subject) — each gets its own
+  // unique code (e.g. MATH1A for Grade 1 Section A Math, MATH1B for Section
+  // B) and its own mock class schedule. Schedule pattern is fixed per subject
+  // name (same time-of-day story across grades/sections, different room per
+  // section) — illustrative only, not sourced from any real timetable. Both
+  // sections of a grade sharing the same time slot per subject is realistic
+  // (parallel sections really do run at the same time, in different rooms
+  // with different teachers) — it's only a real conflict if the *same*
+  // teacher were assigned to that slot twice, which the co-teaching
+  // assignments below deliberately avoid.
   const SUBJECT_SCHEDULE = {
     Filipino: { days: 'Mon/Wed/Fri', start_time: '08:00', end_time: '09:00' },
     English: { days: 'Tue/Thu', start_time: '08:00', end_time: '09:30' },
@@ -98,41 +114,48 @@ async function main() {
     Science: { days: 'Tue/Thu', start_time: '09:30', end_time: '10:30' },
     'Values Education': { days: 'Mon/Wed/Fri', start_time: '10:00', end_time: '10:30' },
   };
+  const SECTIONS = ['A', 'B'];
   const subjectRows = [];
-  const subjectIdByGradeSubject = {};
+  const subjectIdByGradeSectionSubject = {};
   for (let grade = 1; grade <= 6; grade++) {
-    const room = `${100 + grade * 10}`;
-    for (const subject of SUBJECTS) {
-      const subjectId = `SUBJ-${grade}-${SUBJECT_CODES[subject]}`;
-      const sched = SUBJECT_SCHEDULE[subject];
-      subjectRows.push([
-        subjectId, SCHOOL_ID, grade, `${SUBJECT_CODES[subject]}${grade}`, subject,
-        sched.days, sched.start_time, sched.end_time, room,
-      ]);
-      subjectIdByGradeSubject[`${grade}|${subject}`] = subjectId;
+    for (const section of SECTIONS) {
+      const room = `${100 + grade * 10 + (section === 'B' ? 1 : 0)}`;
+      for (const subject of SUBJECTS) {
+        const subjectId = `SUBJ-${grade}${section}-${SUBJECT_CODES[subject]}`;
+        const sched = SUBJECT_SCHEDULE[subject];
+        subjectRows.push([
+          subjectId, SCHOOL_ID, grade, section, `${SUBJECT_CODES[subject]}${grade}${section}`, subject,
+          sched.days, sched.start_time, sched.end_time, room,
+        ]);
+        subjectIdByGradeSectionSubject[`${grade}${section}|${subject}`] = subjectId;
+      }
     }
   }
   await bulkInsert(client, 'subjects',
-    ['subject_id', 'school_id', 'grade_level', 'code', 'name', 'schedule_days', 'start_time', 'end_time', 'room'],
+    ['subject_id', 'school_id', 'grade_level', 'section', 'code', 'name', 'schedule_days', 'start_time', 'end_time', 'room'],
     subjectRows);
 
-  // Grade advisers (1-6) already teach every subject to their own class (see
+  // Section advisers already teach every subject to their own class (see
   // gradeRows below) — assign them all 5 subject instances for their own
-  // grade to match reality. The two floating teachers (no class, t.grade ===
-  // null) are additionally assigned as a second teacher for a couple of
-  // subjects in the upper grades — a real "more than one teacher per subject"
-  // case for the Subjects tab to demo, instead of an unassigned no-op.
+  // (grade, section). The two floating teachers (no class, t.grade === null)
+  // are additionally assigned as a second teacher on ONE subject each, in
+  // Grade 4 Section A only — a real "more than one teacher per subject" case
+  // for the Subjects tab to demo. Deliberately not spread across grades 4-6:
+  // every grade uses the SAME fixed time-of-day per subject name (see
+  // SUBJECT_SCHEDULE above), so a single teacher co-teaching "Science" in
+  // both 4A and 5A would be double-booked at the exact same time — exactly
+  // what PUT /admin/subjects/:id/teachers now rejects. Real schools stagger
+  // grades' periods across the day so a specialist can rotate between them;
+  // this mock data doesn't model that yet (see LESSONS.md).
   const teacherSubjectRows = [];
   for (const t of TEACHERS) {
     if (t.grade === null) continue;
     for (const subject of SUBJECTS) {
-      teacherSubjectRows.push([`TCH-${pad(t.n, 3)}`, subjectIdByGradeSubject[`${t.grade}|${subject}`]]);
+      teacherSubjectRows.push([`TCH-${pad(t.n, 3)}`, subjectIdByGradeSectionSubject[`${t.grade}${t.section}|${subject}`]]);
     }
   }
-  for (const grade of [4, 5, 6]) {
-    teacherSubjectRows.push(['TCH-007', subjectIdByGradeSubject[`${grade}|Values Education`]]); // Ms. Rosa Guinto, co-teaching
-    teacherSubjectRows.push(['TCH-008', subjectIdByGradeSubject[`${grade}|Science`]]); // Mr. Alfonso Reyes, co-teaching
-  }
+  teacherSubjectRows.push(['TCH-007', subjectIdByGradeSectionSubject['4A|Values Education']]); // Ms. Rosa Guinto, co-teaching
+  teacherSubjectRows.push(['TCH-008', subjectIdByGradeSectionSubject['4A|Science']]); // Mr. Alfonso Reyes, co-teaching
   await bulkInsert(client, 'teacher_subjects', ['teacher_id', 'subject_id'], teacherSubjectRows);
 
   const studentRows = [];
@@ -145,9 +168,15 @@ async function main() {
   const studentUserRows = [];
   let studentSeq = 1;
   for (let grade = 1; grade <= 6; grade++) {
-    const classId = `CLS${pad(grade, 3)}`;
-    const teacherUserId = `USR-TCH-${pad(grade, 3)}`;
+    // 25 students per grade split 13/12 across the two sections — same flat
+    // LRN/student_id sequence as before (STU-000001..STU-000150), just now
+    // attached to a specific section's class/adviser instead of one shared
+    // per-grade class.
     for (let i = 0; i < 25; i++) {
+      const section = i < 13 ? 'A' : 'B';
+      const sectionTeacher = TEACHERS.find(t => t.grade === grade && t.section === section);
+      const classId = `CLS${pad(grade, 3)}${section}`;
+      const teacherUserId = `USR-TCH-${pad(sectionTeacher.n, 3)}`;
       const lrn = `123${pad(studentSeq, 3)}`;
       const studentId = `STU-${pad(studentSeq, 6)}`;
       const studentUserId = `USR-STU-${pad(studentSeq, 6)}`;

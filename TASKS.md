@@ -368,3 +368,39 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     days/time/room; double-clicked a student on the admin Students page and confirmed the same
     student's schedule appears inside the detail modal, below their Statement of Account
 
+- [x] **Task AD: Real Sections (2 per Grade), Section-Scoped Subjects, Teacher Schedule-Conflict Check**
+  - Every grade now has two real sections (A and B), each with its own adviser/room/class — not just
+    a UI label. 6 new teachers added (n:9-14 in `seed.js`) as Section B advisers; the original 8
+    teachers (n:1-8) are unchanged, so existing demo logins (teacher.1@ through teacher.8@) still work
+  - `subjects.section` added — a subject is now a (grade, section, subject) instance, not just
+    (grade, subject); codes are still globally unique (e.g. `MATH1A` vs `MATH1B`), which is a strictly
+    stronger guarantee than "unique per grade"
+  - Subjects tab restructured per explicit direction: Grade is now a filter (`<select>`, was tabs),
+    and Section is now the tab row underneath it — "section tabs per grade," not "grade tabs"
+  - **Teacher schedule-conflict check** (the actual ask, phrased as a hypothetical by the user and
+    built as a real rule): `PUT /admin/subjects/:subjectId/teachers` now rejects (409) assigning a
+    teacher to a subject whose days/time overlap with another subject that same teacher already
+    teaches — checked before any write, all-or-nothing. Surfaces in the Subject Detail modal as a
+    plain-language error naming the conflicting subject
+  - Fixed two latent single-section assumptions this change would otherwise have broken:
+    `enrollment.js`'s promotion pipeline used to hardcode `newClassId = CLS<grade>` when issuing a
+    certificate (only correct with one class per grade) — now looks up the student's *own* section and
+    promotes into the matching section of the next grade (Grade N - X → Grade N+1 - X). Both
+    `enrollment.js` and `student.js`'s certificate routes also hardcoded `section: 'A'` in their JSON
+    response — now read the real section
+  - Bug found and fixed *during this task's own testing*: the seed data initially assigned each
+    floating co-teacher (Rosa Guinto, Alfonso Reyes) to the same subject across grades 4, 5, **and** 6
+    Section A — but every grade shares the same fixed time-of-day per subject name, so that assignment
+    was already double-booking the same teacher at the same time in three different rooms. The new
+    conflict check correctly caught this the moment it was exercised. Fixed by scoping each floating
+    teacher's co-teaching to one (grade, section, subject) only — see LESSONS.md
+  - Verify: curled a genuine conflict (rejected, correct message) and a genuine non-conflict
+    (accepted); ran the full re-enrollment pipeline end-to-end on a **Section B** student
+    (STU-000025) — verify → assess → print → pay → issue certificate → confirmed `class_id` moved
+    `CLS001B → CLS002B` (not into Section A) and the certificate's `section` field reads "B"; in the
+    browser, switched Grade filter and Section tabs, opened the Subject Detail modal and tried to
+    assign an already-double-booked teacher (rejected with the conflict message shown inline) then a
+    valid one (accepted); logged in as a Section B student and confirmed "My Schedule" shows only
+    their own section's subjects/teacher/room, not Section A's; reseeded afterward to reset all
+    test-induced mutations back to a clean baseline
+
