@@ -7,6 +7,7 @@ const teacherRoutes = require('./src/routes/teacher');
 const studentRoutes = require('./src/routes/student');
 const parentRoutes = require('./src/routes/parent');
 const statusRoutes = require('./src/routes/status');
+const legalRoutes = require('./src/routes/legal');
 const { checkNow } = require('./src/lib/status');
 const { runBackup } = require('./src/lib/backup');
 
@@ -26,6 +27,7 @@ app.use('/teacher', teacherRoutes);
 app.use('/student', studentRoutes);
 app.use('/parent', parentRoutes);
 app.use('/status', statusRoutes);
+app.use('/legal', legalRoutes);
 
 const HEALTH_CHECK_INTERVAL_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;

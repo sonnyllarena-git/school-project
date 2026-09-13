@@ -260,10 +260,11 @@ const EXPORTABLE = {
   },
   attendance: {
     columns: ['class_id', 'student_id', 'date', 'status', 'time_in'],
-    query: (schoolId, { class_id, from, to }) => {
+    query: (schoolId, { class_id, student_id, from, to }) => {
       const clauses = ['c.school_id = $1'];
       const params = [schoolId];
       if (class_id) { params.push(class_id); clauses.push(`a.class_id = $${params.length}`); }
+      if (student_id) { params.push(student_id); clauses.push(`a.student_id = $${params.length}`); }
       if (from) { params.push(from); clauses.push(`a.date >= $${params.length}`); }
       if (to) { params.push(to); clauses.push(`a.date <= $${params.length}`); }
       return {
@@ -275,13 +276,19 @@ const EXPORTABLE = {
   },
   grades: {
     columns: ['class_id', 'student_id', 'subject', 'grading_period', 'first_period_exam', 'second_period_exam', 'third_period_exam', 'formative_score', 'final_grade'],
-    query: (schoolId, { class_id }) => ({
-      sql: `SELECT g.class_id, g.student_id, g.subject, g.grading_period, g.first_period_exam,
-                   g.second_period_exam, g.third_period_exam, g.formative_score, g.final_grade
-            FROM grades g JOIN classes c ON c.class_id = g.class_id
-            WHERE c.school_id = $1 ${class_id ? 'AND g.class_id = $2' : ''} ORDER BY g.class_id, g.student_id`,
-      params: class_id ? [schoolId, class_id] : [schoolId],
-    }),
+    query: (schoolId, { class_id, student_id }) => {
+      const clauses = ['c.school_id = $1'];
+      const params = [schoolId];
+      if (class_id) { params.push(class_id); clauses.push(`g.class_id = $${params.length}`); }
+      if (student_id) { params.push(student_id); clauses.push(`g.student_id = $${params.length}`); }
+      return {
+        sql: `SELECT g.class_id, g.student_id, g.subject, g.grading_period, g.first_period_exam,
+                     g.second_period_exam, g.third_period_exam, g.formative_score, g.final_grade
+              FROM grades g JOIN classes c ON c.class_id = g.class_id
+              WHERE ${clauses.join(' AND ')} ORDER BY g.class_id, g.student_id`,
+        params,
+      };
+    },
   },
 };
 

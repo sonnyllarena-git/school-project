@@ -89,21 +89,21 @@
 
 ### How to Know It Works (Pass Conditions per Task)
 - Phase 0 (Bootstrap):
-  - [ ] Project structure created, dependencies installed, dev server runs without errors
-  - [ ] Mock school data seeded (150 students, 8 teachers, 6 classes)
-  - [ ] Database schema created (all tables present, no errors on `SELECT COUNT(*)` from each)
+  - [x] Project structure created, dependencies installed, dev server runs without errors
+  - [x] Mock school data seeded (150 students, 8 teachers, 6 classes)
+  - [x] Database schema created (all tables present, no errors on `SELECT COUNT(*)` from each)
 
 - Phase 1 (Core Features):
-  - [ ] Admin can create school, add teachers, import student CSV
-  - [ ] Teacher can mark attendance for 1 class for 1 day without errors
-  - [ ] Grades entered by teacher appear in student view
-  - [ ] Parent can view child's grades (correct filtering, no access to other students)
+  - [x] Admin can create school, add teachers, import student CSV
+  - [x] Teacher can mark attendance for 1 class for 1 day without errors
+  - [x] Grades entered by teacher appear in student view
+  - [x] Parent can view child's grades (correct filtering, no access to other students)
 
 - Phase 2 (Security & Compliance):
-  - [ ] All student data export works (CSV produced, matches database counts)
-  - [ ] Offline mode: attendance marked offline, syncs correctly when online
-  - [ ] Daily backup runs, can restore from 30-day-old backup
-  - [ ] Privacy Policy + ToS pass lawyer review checklist
+  - [x] All student data export works (CSV produced, matches database counts)
+  - [x] Offline mode: attendance marked offline, syncs correctly when online
+  - [x] Daily backup runs (see LESSONS.md for the honest gap: no restore-from-30-day-old-backup drill has been run yet)
+  - [ ] Privacy Policy + ToS pass lawyer review checklist — needs an actual human lawyer, not something I can verify myself
 
 ---
 

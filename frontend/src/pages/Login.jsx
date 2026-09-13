@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+import Footer from '../components/Footer';
 
 const HOME_BY_ROLE = {
   ADMIN: '/admin',
@@ -61,6 +62,7 @@ export default function Login() {
           <code>parent.1@stmichaels.ph / Parent@1</code>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -93,9 +93,11 @@ Then Phase 1 (Features) can begin.
   - Pass condition: matches MVP feature 6
 
 - [x] **Task N: Admin — Data Export**
-  - `GET /admin/export` (CSV of students/teachers/attendance/grades, full or filtered)
-  - Verify: exported CSV row counts match DB counts
-  - Pass condition: matches MVP feature 7 / red-flag §1.3 (vendor lock-in prevention)
+  - `GET /admin/export/:table` (CSV of students/teachers/attendance/grades), filterable by `class_id`,
+    `student_id`, and (attendance) `from`/`to` date range — full dataset when no filter given
+  - Verify: exported CSV row counts match DB counts; `?student_id=` returns only that student's rows
+  - Pass condition: matches MVP feature 7 / red-flag §1.3 (vendor lock-in prevention) and
+    COMPLIANCE_CHECKLIST.md §4.1 "by date range, by class, by student, or full dataset"
 
 **Note:** Tasks F–N above are backend API only.
 
@@ -141,12 +143,15 @@ would have missed — see LESSONS.md.
   - Note: conflict resolution (last-write-wins + timestamp) already exists at the DB layer via each
     table's `recorded_at = now()` upsert — no extra work needed there
 
-- [x] **Task Q: Disaster Recovery — Backups & Status Page**
+- [x] **Task Q: Disaster Recovery — Backups, Restore & Status Page**
   - Backup script: dumps all tables to a timestamped JSON file, logs a row in `backups`, prunes files older
     than 30 days
+  - Restore script: `npm run restore -- <file>.json` — stop the app first (see LESSONS.md for why),
+    replaces all data from a backup file
   - Public `/status` endpoint (no auth) + a public status page showing current health and recent history
-  - Verify: run backup script, confirm file + `backups` row; hit `/status` with no token, see history
-  - Pass condition: matches CLAUDE.md §1.5 (daily backup, 30-day retention, public status page)
+  - Verify: ran backup, deleted 2 real students + their records, ran restore, confirmed those exact
+    students came back; hit `/status` with no token, saw history
+  - Pass condition: matches CLAUDE.md §1.5 (daily backup, 30-day retention, **restorable**, public status page)
   - Note: DB failover replica / zero-downtime deploy are hosting-tier decisions (managed Postgres plan,
     host's deploy pipeline), not application code — flagged, not built here
 
@@ -156,4 +161,22 @@ would have missed — see LESSONS.md.
   - Admin UI: students list page with a delete action (confirm before deleting)
   - Verify: delete a student, confirm all related rows are gone and an audit_log entry exists
   - Pass condition: matches CLAUDE.md §1.1 "Right-to-deletion feature"
+
+- [x] **Task T: UI Polish — Icons, Settings Modal, Dark Mode**
+  - Nav icons via `@heroicons/react` (MIT-licensed; confirmed `icons src/heroicons-complete-reference.json`
+    is just a catalog of this same public library, not proprietary)
+  - Moved "Log out" out of the sidebar into a gear-icon Settings modal (top-right of the topbar);
+    modal also has a working dark mode toggle
+  - Dark theme CSS variables (`:root[data-theme='dark']`), toggle persisted in `localStorage`
+  - Verify: toggled dark mode, confirmed it applies app-wide with no unstyled/white elements left over
+  - Lesson: caught 2 hardcoded `background: white` rules (`.topbar`, `input/select`) that don't
+    respond to theme vars — only visible by actually looking at a dark-mode screenshot, not by
+    reading the diff
+
+- [x] **Task S: Privacy Policy / ToS Embedded in App**
+  - `GET /legal/:doc` (public, no auth) serves the actual root `.md` docs — one source of truth
+  - Frontend `/legal/:doc` page renders it (via `marked`); footer with Privacy Policy / ToS / Status
+    links added to the login page and every authenticated page
+  - Verify: opened `/legal/privacy-policy` with no session/token, content renders
+  - Pass condition: matches CLAUDE.md §1.2 "Privacy Policy embedded in app (footer link, no login required)"
 

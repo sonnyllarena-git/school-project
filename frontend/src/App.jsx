@@ -13,6 +13,7 @@ import StudentGrades from './pages/student/StudentGrades';
 import StudentAttendance from './pages/student/StudentAttendance';
 import ParentDashboard from './pages/parent/ParentDashboard';
 import StatusPage from './pages/StatusPage';
+import LegalDoc from './pages/LegalDoc';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/status" element={<StatusPage />} />
+          <Route path="/legal/:doc" element={<LegalDoc />} />
 
           <Route path="/admin" element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/teachers" element={<ProtectedRoute role="ADMIN"><AdminTeachers /></ProtectedRoute>} />
