@@ -404,3 +404,53 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     their own section's subjects/teacher/room, not Section A's; reseeded afterward to reset all
     test-induced mutations back to a clean baseline
 
+- [x] **Task AE: Admin Schedules Tab**
+  - New read-only "Schedules" admin nav tab — Grade filter + Section tabs (same navigation pattern as
+    Subjects), rendering the shared `ScheduleView` component instead of the subject-management table.
+    No backend changes: reuses `GET /admin/subjects` (already returns every grade/section's subjects
+    with teacher + schedule), just reshaped into `ScheduleView`'s expected shape client-side
+  - The student side already only sees their own schedule (`GET /student/schedule`, built in Task AC,
+    scoped to the student's own class) — nothing to change there, just confirmed still correct
+  - Verify: switched Grade and Section on the new tab and confirmed the right class's subjects/
+    teacher/room/time render each time (spot-checked Grade 1-A and Grade 6-B)
+
+- [x] **Task AF: Day-of-Week Filter on Schedule Views**
+  - Added a day filter (All Days / Mon / Tue / Wed / Thu / Fri tabs) directly inside the shared
+    `ScheduleView` component rather than in any one page — it filters `schedule.subjects` client-side
+    by checking whether the selected day token appears in that subject's free-text `schedule_days`
+    (e.g. "Mon/Wed/Fri"). Since `ScheduleView` is shared, this one change applies everywhere it's
+    used: the new admin Schedules tab, the student's "My Schedule" tab, and the admin's Student Detail
+    modal — no per-page duplication, no backend change
+  - Verify: on both the admin Schedules tab and a student's own "My Schedule," clicked "Monday" and
+    confirmed only the Mon/Wed/Fri subjects (Filipino/Math/Values Education) remained, with the
+    Tue/Thu subjects (English/Science) correctly hidden; clicked back to "All Days" and confirmed the
+    full 5-subject list returned
+
+- [x] **Task AG: Admin Grades View + Real Quarter Metadata**
+  - New `GET /admin/students/:studentId/grades` (admin.js) — same shape as the student's own
+    `GET /student/grades`, scoped to any student in the school. New shared `GradesView` component
+    (mirrors `AccountView`/`ScheduleView`) groups rows by quarter and renders them in `First → Fourth`
+    order (sorted explicitly, since the DB's alphabetical default would put "Fourth" before "Second").
+    Added to the Student Detail modal (double-click a student on the Students page), positioned first
+    — before Account and Schedule — to match the student nav's own priority order (My Grades comes
+    before My Account)
+  - **Quarters formalized as real metadata**: added `GRADING_PERIODS` to `curriculum.js` (single source
+    of truth, same pattern as `SUBJECTS`/`SUBJECT_CODES`) and now validate `grading_period` server-side
+    in `POST /teacher/classes/:id/grades` (previously accepted any string with no validation)
+  - Seed data expanded from 1 quarter to all 4 (750 → 3,000 grade rows) — previously *every* student
+    only had "First Grading" grades seeded, so a 4-quarter feature had nothing to demonstrate
+  - **Bug this surfaced and fixed**: `enrollment.js`'s promotion-eligibility check flagged a student as
+    failing if *any single quarter's* final grade dipped below 75 — harmless with only 1 quarter of
+    data, but with 4 independently-randomized quarters this would falsely block otherwise-passing
+    students on a bad one-quarter dip. Changed to average `final_grade` per subject across all
+    recorded quarters (`AVG(...) GROUP BY subject`) before comparing to the passing grade — matches
+    real DepEd practice (general average), not just more lenient
+  - Refactored `StudentGrades.jsx` (student's own "My Grades") to use the new shared `GradesView`
+    instead of its own duplicate grouping-by-quarter logic — one fewer copy of the same rendering code
+  - Verify: curled the new endpoint (confirmed 20 rows — 5 subjects × 4 quarters — for a test student);
+    curled grading_period validation (rejected "Fifth Grading", accepted "Second Grading"); curled
+    eligibility for a student with mixed quarter scores (confirmed no false failing-subject flag); in
+    the browser, opened the Student Detail modal and confirmed all 4 quarters render in the correct
+    order with full exam breakdowns, then confirmed the student's own "My Grades" page still renders
+    identically post-refactor; reseeded afterward to clear a test-write artifact
+

@@ -7,7 +7,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 const STRINGS = {
   en: {
-    dashboard: 'Dashboard', teachers: 'Teachers', subjects: 'Subjects', students: 'Students',
+    dashboard: 'Dashboard', teachers: 'Teachers', subjects: 'Subjects', schedules: 'Schedules', students: 'Students',
     import_roster: 'Import Roster', data_export: 'Data Export', accounts: 'Accounts',
     enrollment: 'Enrollment', attendance: 'Attendance', grades: 'Grades',
     my_grades: 'My Grades', my_attendance: 'My Attendance', my_schedule: 'My Schedule', my_account: 'My Account',
@@ -23,7 +23,7 @@ const STRINGS = {
     notifications_note: 'Preference only — not yet wired to an actual email/SMS provider.',
   },
   tl: {
-    dashboard: 'Dashboard', teachers: 'Mga Guro', subjects: 'Mga Asignatura', students: 'Mga Mag-aaral',
+    dashboard: 'Dashboard', teachers: 'Mga Guro', subjects: 'Mga Asignatura', schedules: 'Mga Iskedyul', students: 'Mga Mag-aaral',
     import_roster: 'I-import ang Listahan', data_export: 'I-export ang Data', accounts: 'Mga Account',
     enrollment: 'Pagpapatala', attendance: 'Pagdalo', grades: 'Mga Marka',
     my_grades: 'Aking mga Marka', my_attendance: 'Aking Pagdalo', my_schedule: 'Aking Iskedyul', my_account: 'Aking Account',

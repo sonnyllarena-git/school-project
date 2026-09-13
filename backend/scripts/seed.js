@@ -2,11 +2,10 @@ require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
 const { Client } = require('pg');
 const { encrypt } = require('../src/lib/crypto');
-const { SUBJECTS, SUBJECT_CODES, feeTemplateForGrade } = require('../src/lib/curriculum');
+const { SUBJECTS, SUBJECT_CODES, GRADING_PERIODS, feeTemplateForGrade } = require('../src/lib/curriculum');
 
 const SCHOOL_ID = 'STM001';
 const SCHOOL_YEAR = '2025-2026';
-const GRADING_PERIOD = 'First Grading';
 const PAYMENT_METHODS = ['CASH', 'GCASH', 'BANK_TRANSFER'];
 
 // n:1-8 are unchanged from before sections existed (keeps demo logins
@@ -200,17 +199,20 @@ async function main() {
         ]);
       }
 
+      // One row per (subject, quarter) — all 4 quarters, not just the first.
       for (const subject of SUBJECTS) {
-        const base = randInt(70, 98);
-        const p1 = base + randInt(-3, 3);
-        const p2 = base + randInt(-3, 3);
-        const p3 = base + randInt(-3, 3);
-        const formative = base + randInt(-2, 4);
-        const final = Math.round(((p1 + p2 + p3) / 3 * 0.7 + formative * 0.3) * 100) / 100;
-        gradeRows.push([
-          `GRD-${studentId}-${subject.replace(/\s+/g, '')}`, classId, studentId, subject, GRADING_PERIOD,
-          p1, p2, p3, formative, final, teacherUserId,
-        ]);
+        for (const period of GRADING_PERIODS) {
+          const base = randInt(70, 98);
+          const p1 = base + randInt(-3, 3);
+          const p2 = base + randInt(-3, 3);
+          const p3 = base + randInt(-3, 3);
+          const formative = base + randInt(-2, 4);
+          const final = Math.round(((p1 + p2 + p3) / 3 * 0.7 + formative * 0.3) * 100) / 100;
+          gradeRows.push([
+            `GRD-${studentId}-${subject.replace(/\s+/g, '')}-${period.replace(/\s+/g, '')}`, classId, studentId, subject, period,
+            p1, p2, p3, formative, final, teacherUserId,
+          ]);
+        }
       }
 
       const template = feeTemplateForGrade(grade);

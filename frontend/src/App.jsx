@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTeachers from './pages/admin/AdminTeachers';
 import AdminSubjects from './pages/admin/AdminSubjects';
+import AdminSchedules from './pages/admin/AdminSchedules';
 import AdminStudents from './pages/admin/AdminStudents';
 import AdminImport from './pages/admin/AdminImport';
 import AdminExport from './pages/admin/AdminExport';
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/admin" element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/teachers" element={<ProtectedRoute role="ADMIN"><AdminTeachers /></ProtectedRoute>} />
           <Route path="/admin/subjects" element={<ProtectedRoute role="ADMIN"><AdminSubjects /></ProtectedRoute>} />
+          <Route path="/admin/schedules" element={<ProtectedRoute role="ADMIN"><AdminSchedules /></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute role="ADMIN"><AdminStudents /></ProtectedRoute>} />
           <Route path="/admin/import" element={<ProtectedRoute role="ADMIN"><AdminImport /></ProtectedRoute>} />
           <Route path="/admin/export" element={<ProtectedRoute role="ADMIN"><AdminExport /></ProtectedRoute>} />

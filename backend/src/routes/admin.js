@@ -40,6 +40,24 @@ router.get('/students', async (req, res) => {
   res.json(rows);
 });
 
+// Per-student grades, grouped by quarter on the frontend (GradesView) — the
+// same shape as the student's own GET /student/grades, scoped to any student
+// in this school rather than just the caller's own record. Used by the
+// Student Detail modal (Students tab).
+router.get('/students/:studentId/grades', async (req, res) => {
+  const { rows: studentRows } = await pool.query(
+    'SELECT student_id FROM students WHERE student_id = $1 AND school_id = $2',
+    [req.params.studentId, req.user.school_id]
+  );
+  if (!studentRows[0]) return res.status(404).json({ error: 'student not found' });
+  const { rows } = await pool.query(
+    `SELECT subject, grading_period, first_period_exam, second_period_exam, third_period_exam, formative_score, final_grade
+     FROM grades WHERE student_id = $1 ORDER BY grading_period, subject`,
+    [req.params.studentId]
+  );
+  res.json(rows);
+});
+
 // Right-to-deletion (CLAUDE.md §1.1): permanently removes a student's academic
 // records and login account. The student's own audit trail is purged with the
 // account (nothing left for it to describe); a fresh audit_log row is written

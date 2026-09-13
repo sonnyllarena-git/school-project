@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Squares2X2Icon, UserGroupIcon, AcademicCapIcon, ArrowUpTrayIcon, ArrowDownTrayIcon,
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
-  Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon,
+  Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon, ClockIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
@@ -16,6 +16,7 @@ const NAV_BY_ROLE = {
     { to: '/admin', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
     { to: '/admin/teachers', labelKey: 'teachers', icon: UserGroupIcon },
     { to: '/admin/subjects', labelKey: 'subjects', icon: BookOpenIcon },
+    { to: '/admin/schedules', labelKey: 'schedules', icon: ClockIcon },
     { to: '/admin/students', labelKey: 'students', icon: AcademicCapIcon },
     { to: '/admin/import', labelKey: 'import_roster', icon: ArrowUpTrayIcon },
     { to: '/admin/export', labelKey: 'data_export', icon: ArrowDownTrayIcon },

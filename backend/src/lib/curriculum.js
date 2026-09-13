@@ -5,6 +5,11 @@
 const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
 const PASSING_GRADE = 75;
 
+// The school's 4 quarters (DepEd calls them "grading periods") — one school
+// year is these 4, in this order. Single source of truth for both grade
+// entry (Teacher > Grades) and validation (POST /teacher/classes/:id/grades).
+const GRADING_PERIODS = ['First Grading', 'Second Grading', 'Third Grading', 'Fourth Grading'];
+
 // DepEd-style short codes for the Subjects tab (admin/subjects) — display
 // only, not used as a lookup key anywhere subject records are stored.
 const SUBJECT_CODES = {
@@ -42,4 +47,4 @@ function nextSchoolYear(schoolYear) {
   return `${start + 1}-${start + 2}`;
 }
 
-module.exports = { SUBJECTS, SUBJECT_CODES, PASSING_GRADE, FEE_TEMPLATES, feeTemplateForGrade, nextSchoolYear };
+module.exports = { SUBJECTS, SUBJECT_CODES, GRADING_PERIODS, PASSING_GRADE, FEE_TEMPLATES, feeTemplateForGrade, nextSchoolYear };

@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { GRADING_PERIODS } = require('../lib/curriculum');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('TEACHER'));
@@ -93,6 +94,9 @@ router.post('/classes/:classId/grades', async (req, res) => {
   const { subject, grading_period, records } = req.body;
   if (!subject || !grading_period || !Array.isArray(records) || records.length === 0) {
     return res.status(400).json({ error: 'subject, grading_period, and a non-empty records array are required' });
+  }
+  if (!GRADING_PERIODS.includes(grading_period)) {
+    return res.status(400).json({ error: `grading_period must be one of: ${GRADING_PERIODS.join(', ')}` });
   }
   const own = await findOwnClass(classId, req.user.user_id);
   if (!own) {

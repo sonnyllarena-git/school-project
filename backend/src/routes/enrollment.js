@@ -20,14 +20,17 @@ async function getStudentAndGrade(studentId, schoolId) {
   return rows[0] || null;
 }
 
-// Promotion gate: no balance owed for the current year, and no failing final grade.
+// Promotion gate: no balance owed for the current year, and no failing
+// general average. Averaged across whichever quarters (grading_period) have
+// been recorded so far per subject — not any single quarter's dip — since a
+// school year now has 4 quarters of grades, not just one.
 async function checkEligibility(studentId) {
   const account = await getStudentAccount(studentId, CURRENT_SCHOOL_YEAR);
   const { rows: gradeRows } = await pool.query(
-    'SELECT subject, final_grade FROM grades WHERE student_id = $1 AND final_grade IS NOT NULL',
+    'SELECT subject, AVG(final_grade) AS avg_grade FROM grades WHERE student_id = $1 AND final_grade IS NOT NULL GROUP BY subject',
     [studentId]
   );
-  const failingSubjects = gradeRows.filter(g => Number(g.final_grade) < PASSING_GRADE).map(g => g.subject);
+  const failingSubjects = gradeRows.filter(g => Number(g.avg_grade) < PASSING_GRADE).map(g => g.subject);
   return {
     eligible: account.balance <= 0 && failingSubjects.length === 0,
     balance: account.balance,

@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { cachedFetch } from '../../lib/offlineCache';
 import { enqueue } from '../../lib/offlineQueue';
 
+// Must match backend/src/lib/curriculum.js SUBJECTS/GRADING_PERIODS.
 const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
 const PERIODS = ['First Grading', 'Second Grading', 'Third Grading', 'Fourth Grading'];
 const FIELDS = ['first_period_exam', 'second_period_exam', 'third_period_exam', 'formative_score', 'final_grade'];

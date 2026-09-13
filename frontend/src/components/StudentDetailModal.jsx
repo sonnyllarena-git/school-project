@@ -4,17 +4,24 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { api } from '../lib/api';
 import AccountView from './AccountView';
 import ScheduleView from './ScheduleView';
+import GradesView from './GradesView';
 
 export default function StudentDetailModal({ token, student, onClose }) {
   const navigate = useNavigate();
   const [account, setAccount] = useState(null);
   const [schedule, setSchedule] = useState(null);
+  const [grades, setGrades] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setAccount(null);
     setError('');
     api.getAccount(token, student.student_id).then(setAccount).catch(err => setError(err.message));
+  }, [student.student_id, token]);
+
+  useEffect(() => {
+    setGrades(null);
+    api.getStudentGrades(token, student.student_id).then(setGrades).catch(err => setError(err.message));
   }, [student.student_id, token]);
 
   useEffect(() => {
@@ -62,6 +69,10 @@ export default function StudentDetailModal({ token, student, onClose }) {
 
         <div className="modal-section">
           {error && <div className="error-banner">{error}</div>}
+          <GradesView grades={grades} />
+        </div>
+
+        <div className="modal-section">
           <AccountView account={account} />
         </div>
 
