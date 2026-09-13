@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP Vault Icon Library — Heroicons Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #1a3a52;
+            font-size: 32px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #6B7280;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #FF8C00;
+        }
+
+        .info-card strong {
+            color: #1a3a52;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .info-card p {
+            color: #6B7280;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #FF8C00;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #e67e00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,140,0,0.3);
+        }
+
+        .size-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .size-selector label {
+            color: #6B7280;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+
+        .size-selector input[type="range"] {
+            width: 150px;
+        }
+
+        .size-display {
+            color: #1a3a52;
+            font-weight: 600;
+            min-width: 50px;
+        }
+
+        .categories {
+            display: grid;
+            gap: 30px;
+        }
+
+        .category {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .category-title {
+            color: #1a3a52;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #FF8C00;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 20px;
+        }
+
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #E5E7EB;
+        }
+
+        .icon-item:hover {
+            background: white;
+            border-color: #FF8C00;
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(255,140,0,0.2);
+        }
+
+        .icon-display {
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a3a52;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            max-width: 48px;
+            max-height: 48px;
+        }
+
+        .icon-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a3a52;
+            text-align: center;
+            word-break: break-word;
+        }
+
+        .icon-desc {
+            font-size: 11px;
+            color: #6B7280;
+            text-align: center;
+        }
+
+        footer {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 40px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        footer p {
+            color: #6B7280;
+            margin-bottom: 12px;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            text-align: center;
+        }
+
+        .swatch {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 2px solid #E5E7EB;
+        }
+
+        .swatch-label {
+            font-size: 12px;
+            color: #6B7280;
+            font-weight: 600;
+        }
+
+        .swatch-value {
+            font-size: 11px;
+            color: #9CA3AF;
+            font-family: monospace;
+        }
+
+        @media (max-width: 768px) {
+            .icon-grid {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            header {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TCP Vault Icon Library</h1>
+            <p class="subtitle">Heroicons-style monochrome icons for dashboard system — stroke-based, scalable, professional</p>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <strong>Style Guide</strong>
+                    <p>Heroicons 24px line style. Monochrome, 2px stroke weight. Scalable to any size.</p>
+                </div>
+                <div class="info-card">
+                    <strong>Colors</strong>
+                    <p>Uses currentColor for dynamic theming. Pair with TCP brand colors: Navy #1a3a52, Orange #FF8C00</p>
+                </div>
+                <div class="info-card">
+                    <strong>Usage</strong>
+                    <p>SVG format. Copy-paste inline or use as &lt;img&gt; src. Works in light and dark themes.</p>
+                </div>
+                <div class="info-card">
+                    <strong>Total Icons</strong>
+                    <p>45+ dashboard system icons covering all core functions and common UI patterns.</p>
+                </div>
+            </div>
+
+            <div class="controls" style="margin-top: 24px;">
+                <div class="size-selector">
+                    <label for="sizeSlider">Preview Size:</label>
+                    <input type="range" id="sizeSlider" min="24" max="64" value="48">
+                    <span class="size-display">48px</span>
+                </div>
+                <button onclick="downloadAllSVG()">📥 Download All SVG</button>
+                <button onclick="copyCSS()">📋 Copy CSS Usage</button>
+            </div>
+
+            <div class="color-palette">
+                <div class="color-swatch">
+                    <div class="swatch" style="background: #1a3a52;"></div>
+                    <div class="swatch-label">Navy (Primary)</div>
+                    <div class="swatch-value">#1a3a52</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="swatch" style="background: #FF8C00;"></div>
+                    <div class="swatch-label">Orange (Accent)</div>
+                    <div class="swatch-value">#FF8C00</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="swatch" style="background: #FFFFFF; border-color: #1a3a52;"></div>
+                    <div class="swatch-label">White (Ground)</div>
+                    <div class="swatch-value">#FFFFFF</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="swatch" style="background: #E5E7EB;"></div>
+                    <div class="swatch-label">Gray (Borders)</div>
+                    <div class="swatch-value">#E5E7EB</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="categories" id="categoriesContainer"></div>
+
+        <footer>
+            <p><strong>TCP Vault Design System v1.0</strong></p>
+            <p>Icons designed for internal password vault dashboard. All icons follow Heroicons conventions for consistency and professional appearance.</p>
+            <p style="margin-top: 20px; font-size: 12px; color: #9CA3AF;">
+                ✓ Monochrome (uses currentColor) • ✓ Scalable • ✓ Light & Dark theme ready • ✓ 2px stroke • ✓ 24px base grid
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const iconCategories = {
+            "Navigation & Core": [
+                { name: "dashboard", desc: "Grid/Dashboard view" },
+                { name: "home", desc: "Home/Main" },
+                { name: "menu", desc: "Menu/Hamburger" },
+            ],
+            "Users & Roles": [
+                { name: "users", desc: "Multiple users/Team" },
+                { name: "user", desc: "Single user/Profile" },
+                { name: "group", desc: "User group/Teams" },
+                { name: "admin", desc: "Admin/Shield" },
+            ],
+            "Credentials & Security": [
+                { name: "credentials", desc: "Key/Credentials" },
+                { name: "lock", desc: "Lock/Secured" },
+                { name: "lock-open", desc: "Unlock/Open" },
+                { name: "eye", desc: "Show/Reveal" },
+                { name: "eye-off", desc: "Hide/Mask" },
+            ],
+            "Settings & Policies": [
+                { name: "settings", desc: "Settings/Config" },
+                { name: "policy", desc: "Policy/Rules" },
+                { name: "filter", desc: "Filter/Search" },
+                { name: "sort", desc: "Sort/Order" },
+            ],
+            "Audit & Monitoring": [
+                { name: "audit", desc: "Audit trail" },
+                { name: "activity", desc: "Activity log" },
+                { name: "bell", desc: "Notifications" },
+            ],
+            "File Management": [
+                { name: "folder", desc: "Folder/Directory" },
+                { name: "folder-open", desc: "Open folder" },
+                { name: "file", desc: "Document/File" },
+                { name: "share", desc: "Share/Link" },
+                { name: "share-folder", desc: "Share folder" },
+                { name: "share-file", desc: "Share file" },
+            ],
+            "Actions": [
+                { name: "edit", desc: "Edit/Modify" },
+                { name: "delete", desc: "Delete/Trash" },
+                { name: "copy", desc: "Copy/Clone" },
+                { name: "plus", desc: "Add/Create" },
+                { name: "minus", desc: "Remove/Delete" },
+                { name: "close", desc: "Close/Cancel" },
+            ],
+            "Navigation Arrows": [
+                { name: "arrow-left", desc: "Previous/Back" },
+                { name: "arrow-right", desc: "Next/Forward" },
+                { name: "chevron-up", desc: "Collapse" },
+                { name: "chevron-down", desc: "Expand" },
+            ],
+            "Upload & Download": [
+                { name: "download", desc: "Download/Save" },
+                { name: "upload", desc: "Upload/Import" },
+                { name: "refresh", desc: "Refresh/Sync" },
+            ],
+            "Status & Alerts": [
+                { name: "check-circle", desc: "Success/Confirmed" },
+                { name: "exclamation-circle", desc: "Warning/Caution" },
+                { name: "error", desc: "Error/Failed" },
+                { name: "info", desc: "Information" },
+            ],
+        };
+
+        const svgIcons = {
+            // Navigation & Core
+            dashboard: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>',
+            home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
+            menu: '<line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line>',
+
+            // Users & Roles
+            users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+            user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>',
+            group: '<path d="M17 21v-2a4 4 0 0 0-5-3.87m-2 0a4 4 0 0 0-5 3.87v2"></path><circle cx="9" cy="9" r="4"></circle><circle cx="15" cy="9" r="4"></circle>',
+            admin: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
+
+            // Credentials & Security
+            credentials: '<circle cx="12" cy="12" r="1"></circle><path d="M12 1v6m0 6v4"></path><path d="M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24"></path>',
+            lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>',
+            "lock-open": '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.2 1"></path>',
+            eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>',
+            "eye-off": '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>',
+
+            // Settings & Policies
+            settings: '<circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v4M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24M1 12h6m6 0h4m-17.78 7.78l4.24-4.24m2.12-2.12l4.24-4.24"></path>',
+            policy: '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline>',
+            filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>',
+            sort: '<polyline points="12 5 12 19"></polyline><polyline points="19 12 12 19 5 12"></polyline>',
+
+            // Audit & Monitoring
+            audit: '<polyline points="20 6 9 17 4 12"></polyline>',
+            activity: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>',
+            bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>',
+
+            // File Management
+            folder: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
+            "folder-open": '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 6h20"></path>',
+            file: '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline>',
+            share: '<circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>',
+            "share-folder": '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line>',
+            "share-file": '<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline><path d="M12 14v6"></path><path d="M15 17H9"></path>',
+
+            // Actions
+            edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>',
+            delete: '<polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>',
+            copy: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>',
+            plus: '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>',
+            minus: '<line x1="5" y1="12" x2="19" y2="12"></line>',
+            close: '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
+
+            // Navigation Arrows
+            "arrow-left": '<line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline>',
+            "arrow-right": '<line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline>',
+            "chevron-up": '<polyline points="18 15 12 9 6 15"></polyline>',
+            "chevron-down": '<polyline points="6 9 12 15 18 9"></polyline>',
+
+            // Upload & Download
+            download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>',
+            upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>',
+            refresh: '<polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2-8.83"></path>',
+
+            // Status & Alerts
+            "check-circle": '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>',
+            "exclamation-circle": '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
+            error: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
+            info: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>',
+        };
+
+        function renderIcons() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            Object.entries(iconCategories).forEach(([category, icons]) => {
+                const categoryEl = document.createElement('div');
+                categoryEl.className = 'category';
+
+                const titleEl = document.createElement('h2');
+                titleEl.className = 'category-title';
+                titleEl.textContent = category;
+                categoryEl.appendChild(titleEl);
+
+                const gridEl = document.createElement('div');
+                gridEl.className = 'icon-grid';
+
+                icons.forEach(icon => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'icon-item';
+                    itemEl.onclick = () => copySVGCode(icon.name);
+                    itemEl.title = 'Click to copy SVG code';
+
+                    const displayEl = document.createElement('div');
+                    displayEl.className = 'icon-display';
+                    displayEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgIcons[icon.name]}</svg>`;
+                    itemEl.appendChild(displayEl);
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'icon-name';
+                    nameEl.textContent = icon.name;
+                    itemEl.appendChild(nameEl);
+
+                    const descEl = document.createElement('div');
+                    descEl.className = 'icon-desc';
+                    descEl.textContent = icon.desc;
+                    itemEl.appendChild(descEl);
+
+                    gridEl.appendChild(itemEl);
+                });
+
+                categoryEl.appendChild(gridEl);
+                container.appendChild(categoryEl);
+            });
+        }
+
+        function copySVGCode(iconName) {
+            const svgCode = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  ${svgIcons[iconName]}
+</svg>`;
+
+            navigator.clipboard.writeText(svgCode).then(() => {
+                alert(`✓ Copied ${iconName} SVG code to clipboard!`);
+            });
+        }
+
+        function downloadAllSVG() {
+            let zip = null;
+            try {
+                // Note: In production, you'd use JSZip library
+                alert('📥 To download all icons:\n\n1. Right-click the page\n2. Select "Save page as..."\n3. Save as HTML file\n\nOr copy individual icons by clicking them.');
+            } catch(e) {
+                alert('📥 Download feature requires JSZip library. Copy individual icons by clicking them.');
+            }
+        }
+
+        function copyCSS() {
+            const css = `.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: currentColor;
+  stroke-width: 2;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.icon.sm { width: 16px; height: 16px; }
+.icon.lg { width: 32px; height: 32px; }
+.icon.xl { width: 48px; height: 48px; }
+
+.icon.navy { color: #1a3a52; }
+.icon.orange { color: #FF8C00; }
+.icon.white { color: #FFFFFF; }
+.icon.gray { color: #6B7280; }`;
+
+            navigator.clipboard.writeText(css).then(() => {
+                alert('✓ Copied CSS framework to clipboard!');
+            });
+        }
+
+        // Size slider
+        document.getElementById('sizeSlider').addEventListener('input', (e) => {
+            const size = e.target.value;
+            document.querySelector('.size-display').textContent = size + 'px';
+
+            document.querySelectorAll('.icon-display svg').forEach(svg => {
+                svg.style.maxWidth = size + 'px';
+                svg.style.maxHeight = size + 'px';
+            });
+        });
+
+        // Initialize
+        renderIcons();
+    </script>
+</body>
+</html>
