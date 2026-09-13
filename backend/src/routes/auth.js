@@ -21,7 +21,7 @@ router.post('/login', async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    'SELECT user_id, school_id, password_hash, role FROM users WHERE email = $1',
+    'SELECT user_id, school_id, password_hash, role, name FROM users WHERE email = $1',
     [email]
   );
   const user = rows[0];
@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
     { expiresIn: '8h' }
   );
 
-  res.json({ token });
+  res.json({ token, user: { user_id: user.user_id, role: user.role, name: user.name } });
 });
 
 module.exports = router;

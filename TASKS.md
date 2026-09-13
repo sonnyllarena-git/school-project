@@ -97,7 +97,27 @@ Then Phase 1 (Features) can begin.
   - Verify: exported CSV row counts match DB counts
   - Pass condition: matches MVP feature 7 / red-flag §1.3 (vendor lock-in prevention)
 
-**Note:** these tasks build the backend API only. Frontend (React) screens per role are a
-separate, larger body of work — flagged for a scoping conversation once the API is solid,
-rather than assumed in scope here.
+**Note:** Tasks F–N above are backend API only.
+
+---
+
+## Phase 1: Frontend (React + Vite)
+
+Design language follows `References/dashboard reference.jpg` and `References/login reference.png`
+(dark navy sidebar, card-based stats, data tables).
+
+- [x] **Login page** — single form, redirects to the right dashboard per role after login
+- [x] **Admin: Dashboard** — school info, attendance %, grade distribution (reports API)
+- [x] **Admin: Teachers** — list + add teacher form
+- [x] **Admin: Import Roster** — paste-CSV import UI
+- [x] **Admin: Data Export** — authenticated CSV download per table
+- [x] **Teacher: Attendance** — class + date picker, per-student status, save
+- [x] **Teacher: Grades** — class + subject + grading period picker, per-student score entry
+- [x] **Student: My Grades / My Attendance** — read-only, own record only
+- [x] **Parent: My Children** — child picker, tabbed grades/attendance, scoped to linked children
+
+Verify: manually exercised all 4 roles end-to-end in a real browser (login → role-correct
+dashboard → each nav page → real data from the seeded DB), console clean, no failed requests.
+Found and fixed one real bug this way (guardian display name), which a status-code-only check
+would have missed — see LESSONS.md.
 

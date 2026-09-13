@@ -147,7 +147,7 @@ async function main() {
     const userId = `USR-PAR-${pad(guardianSeq, 4)}`;
     const guardianId = `GRD-PAR-${pad(guardianSeq, 4)}`;
     const hash = await bcrypt.hash(`Parent@${guardianSeq}`, 10);
-    const childSurname = studentRows[i][4].split(' ').pop();
+    const childSurname = studentRows[i][5].split(' ').pop();
     guardianUserRows.push([userId, SCHOOL_ID, `parent.${guardianSeq}@stmichaels.ph`, hash, 'PARENT', `Guardian of ${childSurname} family`]);
     guardianRows.push([guardianId, userId, `0917${pad(randInt(0, 9999999), 7)}`]);
     linkRows.push([studentRows[i][0], guardianId]);

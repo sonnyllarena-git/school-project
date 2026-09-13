@@ -15,6 +15,26 @@ async function findOwnClass(classId, userId) {
   return rows[0] || null;
 }
 
+router.get('/classes', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT c.class_id, c.grade_level, c.section, c.room
+     FROM classes c JOIN teachers t ON t.teacher_id = c.teacher_id
+     WHERE t.user_id = $1 ORDER BY c.grade_level`,
+    [req.user.user_id]
+  );
+  res.json(rows);
+});
+
+router.get('/classes/:classId/roster', async (req, res) => {
+  const own = await findOwnClass(req.params.classId, req.user.user_id);
+  if (!own) return res.status(403).json({ error: 'not your class' });
+  const { rows } = await pool.query(
+    'SELECT student_id, name FROM students WHERE class_id = $1 ORDER BY name',
+    [req.params.classId]
+  );
+  res.json(rows);
+});
+
 router.post('/classes/:classId/attendance', async (req, res) => {
   const { classId } = req.params;
   const { date, records } = req.body;
