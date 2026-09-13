@@ -5,7 +5,6 @@ const pool = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { parseCsv, toCsv } = require('../lib/csv');
 const { encrypt, decrypt } = require('../lib/crypto');
-const { SUBJECTS } = require('../lib/curriculum');
 const { CURRENT_SCHOOL_YEAR, computeStatus } = require('../lib/account');
 
 const router = express.Router();
@@ -107,41 +106,122 @@ router.patch('/school', async (req, res) => {
 });
 
 router.get('/teachers', async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT t.teacher_id, u.user_id, u.name, u.email, c.grade_level AS advises_grade, c.section AS advises_section,
-            COALESCE(array_agg(ts.subject) FILTER (WHERE ts.subject IS NOT NULL), '{}') AS subjects
+  const { rows: teachers } = await pool.query(
+    `SELECT t.teacher_id, u.user_id, u.name, u.email, c.grade_level AS advises_grade, c.section AS advises_section
      FROM teachers t
      JOIN users u ON u.user_id = t.user_id
      LEFT JOIN classes c ON c.teacher_id = t.teacher_id
-     LEFT JOIN teacher_subjects ts ON ts.teacher_id = t.teacher_id
      WHERE t.school_id = $1
-     GROUP BY t.teacher_id, u.user_id, u.name, u.email, c.grade_level, c.section
      ORDER BY u.name`,
     [req.user.school_id]
   );
-  res.json(rows);
+  const { rows: assignments } = await pool.query(
+    `SELECT ts.teacher_id, s.name AS subject, s.grade_level
+     FROM teacher_subjects ts
+     JOIN subjects s ON s.subject_id = ts.subject_id
+     JOIN teachers t ON t.teacher_id = ts.teacher_id
+     WHERE t.school_id = $1`,
+    [req.user.school_id]
+  );
+  teachers.forEach(t => {
+    t.subjects = assignments
+      .filter(a => a.teacher_id === t.teacher_id)
+      .map(a => ({ subject: a.subject, grade_level: a.grade_level }));
+  });
+  res.json(teachers);
 });
 
-// Replaces a teacher's full subject-assignment set (not incremental) — the
-// admin UI always sends the complete checked set, so delete+reinsert in one
-// transaction is simpler and just as correct as a diff.
-router.put('/teachers/:teacherId/subjects', async (req, res) => {
-  const { subjects } = req.body;
-  if (!Array.isArray(subjects) || subjects.some(s => !SUBJECTS.includes(s))) {
-    return res.status(400).json({ error: `subjects must be an array drawn from: ${SUBJECTS.join(', ')}` });
-  }
-  const { rows } = await pool.query(
-    'SELECT teacher_id FROM teachers WHERE teacher_id = $1 AND school_id = $2',
-    [req.params.teacherId, req.user.school_id]
+// Subject-teacher assignment (see the Subjects tab / admin/subjects) — each
+// subject is its own row (one per grade instance, admin-creatable, unique
+// code), and one subject can have more than one teacher, so assignment is
+// keyed by subject_id rather than by teacher.
+router.get('/subjects', async (req, res) => {
+  const { rows: subjects } = await pool.query(
+    `SELECT subject_id, grade_level, code, name, schedule_days, start_time, end_time, room
+     FROM subjects WHERE school_id = $1 ORDER BY grade_level, name`,
+    [req.user.school_id]
   );
-  if (!rows[0]) return res.status(404).json({ error: 'teacher not found' });
+  const { rows: assignments } = await pool.query(
+    `SELECT ts.subject_id, ts.teacher_id, u.name AS teacher_name
+     FROM teacher_subjects ts
+     JOIN teachers t ON t.teacher_id = ts.teacher_id
+     JOIN users u ON u.user_id = t.user_id
+     WHERE t.school_id = $1
+     ORDER BY u.name`,
+    [req.user.school_id]
+  );
+  const grades = [];
+  for (let grade = 1; grade <= 6; grade++) {
+    grades.push({
+      grade_level: grade,
+      subjects: subjects.filter(s => s.grade_level === grade).map(s => ({
+        subject_id: s.subject_id,
+        code: s.code,
+        name: s.name,
+        schedule: { days: s.schedule_days, start_time: s.start_time, end_time: s.end_time, room: s.room },
+        teachers: assignments
+          .filter(a => a.subject_id === s.subject_id)
+          .map(a => ({ teacher_id: a.teacher_id, name: a.teacher_name })),
+      })),
+    });
+  }
+  res.json(grades);
+});
+
+// Admin creates a new subject instance for a grade — its own unique code,
+// its own mock schedule. Independent of curriculum.js's fixed SUBJECTS list
+// (grade entry/enrollment display); adding one here does not make it
+// gradeable in Teacher > Grades.
+router.post('/subjects', async (req, res) => {
+  const { grade_level, code, name, schedule_days, start_time, end_time, room } = req.body;
+  const gradeLevel = Number(grade_level);
+  if (!Number.isInteger(gradeLevel) || gradeLevel < 1 || gradeLevel > 6) {
+    return res.status(400).json({ error: 'grade level must be an integer 1-6' });
+  }
+  if (!code?.trim() || !name?.trim()) {
+    return res.status(400).json({ error: 'code and name are required' });
+  }
+  const subjectId = `SUBJ-${crypto.randomUUID().slice(0, 8)}`;
+  try {
+    await pool.query(
+      `INSERT INTO subjects (subject_id, school_id, grade_level, code, name, schedule_days, start_time, end_time, room)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [subjectId, req.user.school_id, gradeLevel, code.trim(), name.trim(), schedule_days || null, start_time || null, end_time || null, room || null]
+    );
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: `subject code "${code.trim()}" is already in use` });
+    throw err;
+  }
+  res.status(201).json({ subject_id: subjectId, grade_level: gradeLevel, code: code.trim(), name: name.trim() });
+});
+
+// Replaces the full teacher set for one subject — the admin UI always sends
+// the complete checked set, so delete+reinsert in one transaction is simpler
+// and just as correct as a diff.
+router.put('/subjects/:subjectId/teachers', async (req, res) => {
+  const { teacher_ids } = req.body;
+  if (!Array.isArray(teacher_ids)) {
+    return res.status(400).json({ error: 'teacher_ids must be an array' });
+  }
+  const { rows: subjectRows } = await pool.query(
+    'SELECT subject_id FROM subjects WHERE subject_id = $1 AND school_id = $2',
+    [req.params.subjectId, req.user.school_id]
+  );
+  if (!subjectRows[0]) return res.status(404).json({ error: 'subject not found' });
+  const { rows: valid } = await pool.query(
+    'SELECT teacher_id FROM teachers WHERE school_id = $1 AND teacher_id = ANY($2)',
+    [req.user.school_id, teacher_ids]
+  );
+  if (valid.length !== new Set(teacher_ids).size) {
+    return res.status(400).json({ error: 'one or more teacher_ids not found' });
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('DELETE FROM teacher_subjects WHERE teacher_id = $1', [req.params.teacherId]);
-    for (const subject of subjects) {
-      await client.query('INSERT INTO teacher_subjects (teacher_id, subject) VALUES ($1, $2)', [req.params.teacherId, subject]);
+    await client.query('DELETE FROM teacher_subjects WHERE subject_id = $1', [req.params.subjectId]);
+    for (const teacherId of teacher_ids) {
+      await client.query('INSERT INTO teacher_subjects (teacher_id, subject_id) VALUES ($1, $2)', [teacherId, req.params.subjectId]);
     }
     await client.query('COMMIT');
   } catch (err) {
@@ -151,7 +231,7 @@ router.put('/teachers/:teacherId/subjects', async (req, res) => {
     client.release();
   }
 
-  res.json({ teacher_id: req.params.teacherId, subjects });
+  res.json({ subject_id: req.params.subjectId, teacher_ids });
 });
 
 router.post('/teachers', async (req, res) => {

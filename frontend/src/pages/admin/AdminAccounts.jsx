@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import AccountView from '../../components/AccountView';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
-import { STATUS_OPTIONS } from '../../lib/accountStatus';
 
 const METHODS = ['CASH', 'GCASH', 'BANK_TRANSFER'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -18,9 +17,7 @@ export default function AdminAccounts() {
   const [form, setForm] = useState({ amount: '', payment_date: today(), method: 'CASH', reference_no: '', notes: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [gradeFilter, setGradeFilter] = useState('');
-  const [sectionFilter, setSectionFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     api.listAccountStudents(session.token).then(list => {
@@ -31,25 +28,16 @@ export default function AdminAccounts() {
     }).catch(err => setError(err.message));
   }, [session]);
 
-  const grades = useMemo(
-    () => [...new Set(students.map(s => s.grade_level).filter(g => g != null))].sort((a, b) => a - b),
-    [students]
-  );
-  const sections = useMemo(
-    () => [...new Set(students.map(s => s.section).filter(Boolean))].sort(),
-    [students]
-  );
+  const searchTerm = search.trim().toLowerCase();
   const filteredStudents = students.filter(s =>
-    (!gradeFilter || String(s.grade_level) === gradeFilter) &&
-    (!sectionFilter || s.section === sectionFilter) &&
-    (!statusFilter || s.status === statusFilter)
+    !searchTerm || s.name.toLowerCase().includes(searchTerm) || s.lrn.includes(searchTerm)
   );
 
   useEffect(() => {
     if (filteredStudents.length > 0 && !filteredStudents.some(s => s.student_id === studentId)) {
       setStudentId(filteredStudents[0].student_id);
     }
-  }, [gradeFilter, sectionFilter, statusFilter]);
+  }, [search]);
 
   function loadAccount(id) {
     if (!id) return;
@@ -83,25 +71,16 @@ export default function AdminAccounts() {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="form-row">
           <div>
-            <label>Grade</label>
-            <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}>
-              <option value="">All</option>
-              {grades.map(g => <option key={g} value={g}>Grade {g}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>Section</label>
-            <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
-              <option value="">All</option>
-              {sections.map(sec => <option key={sec} value={sec}>{sec}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>Payment Status</label>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="">All</option>
-              {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <label>Search</label>
+            <input
+              list="account-student-suggestions"
+              placeholder="Name or LRN…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <datalist id="account-student-suggestions">
+              {students.map(s => <option key={s.student_id} value={s.name} />)}
+            </datalist>
           </div>
         </div>
         <div className="form-row" style={{ marginBottom: 0 }}>

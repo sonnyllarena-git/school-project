@@ -9,7 +9,7 @@
 -- phase (seed.js always repopulates from scratch); revisit before real data
 -- exists — this would then need real migrations instead of DROP + CREATE.
 DROP TABLE IF EXISTS backups, audit_logs, enrollments, payments, fee_items, grades,
-  attendance, students, classes, teacher_subjects, teachers, users, schools,
+  attendance, students, classes, teacher_subjects, subjects, teachers, users, schools,
   student_guardians, guardians CASCADE; -- one-time cleanup of retired Parent-role tables
 
 CREATE TABLE schools (
@@ -48,15 +48,36 @@ CREATE TABLE teachers (
   school_id     TEXT NOT NULL REFERENCES schools(school_id)
 );
 
--- Which subjects a teacher is assigned to teach — independent of class
--- advisory (classes.teacher_id). Elementary advisers typically teach every
--- subject to their own class already; this exists for the floating/specialist
--- teachers who have no class of their own, and to make the assignment an
--- explicit, admin-editable fact rather than an implicit "whatever they grade."
+-- Admin-managed subject catalog, one row per (grade, subject) instance — not
+-- a fixed list. Each row is its own thing with its own unique code (e.g.
+-- "MATH4" for Grade 4 Math is a different row from "MATH1" for Grade 1 Math,
+-- even though the subject name is the same), and its own mock class schedule
+-- — see the Subjects tab (admin/subjects). `code` is globally unique per
+-- school, which also guarantees no two subjects within the same grade share
+-- a code. Decoupled from `grades.subject` (free text, used by teacher grade
+-- entry) and curriculum.js's SUBJECTS list (used for enrollment/grade-entry
+-- display) — this table is about scheduling/staffing, not academic scoring.
+CREATE TABLE subjects (
+  subject_id    TEXT PRIMARY KEY,
+  school_id     TEXT NOT NULL REFERENCES schools(school_id),
+  grade_level   INT NOT NULL,
+  code          TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  schedule_days TEXT,    -- mock schedule, free text e.g. "Mon/Wed/Fri"
+  start_time    TIME,
+  end_time      TIME,
+  room          TEXT,
+  UNIQUE (school_id, code)
+);
+
+-- Which subjects (subject rows, i.e. grade-specific instances above) a
+-- teacher is assigned to teach — independent of class advisory
+-- (classes.teacher_id). One subject can have more than one teacher (e.g. a
+-- floating specialist co-teaching alongside the adviser).
 CREATE TABLE teacher_subjects (
   teacher_id    TEXT NOT NULL REFERENCES teachers(teacher_id),
-  subject       TEXT NOT NULL,
-  PRIMARY KEY (teacher_id, subject)
+  subject_id    TEXT NOT NULL REFERENCES subjects(subject_id),
+  PRIMARY KEY (teacher_id, subject_id)
 );
 
 CREATE TABLE classes (

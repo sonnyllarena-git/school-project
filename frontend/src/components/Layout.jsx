@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Squares2X2Icon, UserGroupIcon, AcademicCapIcon, ArrowUpTrayIcon, ArrowDownTrayIcon,
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
-  Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon,
+  Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
@@ -15,6 +15,7 @@ const NAV_BY_ROLE = {
   ADMIN: [
     { to: '/admin', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
     { to: '/admin/teachers', labelKey: 'teachers', icon: UserGroupIcon },
+    { to: '/admin/subjects', labelKey: 'subjects', icon: BookOpenIcon },
     { to: '/admin/students', labelKey: 'students', icon: AcademicCapIcon },
     { to: '/admin/import', labelKey: 'import_roster', icon: ArrowUpTrayIcon },
     { to: '/admin/export', labelKey: 'data_export', icon: ArrowDownTrayIcon },
@@ -28,6 +29,7 @@ const NAV_BY_ROLE = {
   STUDENT: [
     { to: '/student', labelKey: 'my_grades', end: true, icon: ChartBarIcon },
     { to: '/student/attendance', labelKey: 'my_attendance', icon: CalendarDaysIcon },
+    { to: '/student/schedule', labelKey: 'my_schedule', icon: BookOpenIcon },
     { to: '/student/account', labelKey: 'my_account', icon: BanknotesIcon },
     { to: '/student/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
   ],

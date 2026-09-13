@@ -29,8 +29,10 @@ export const api = {
   updateSchool: (token, fields) => request('/admin/school', { method: 'PATCH', token, body: fields }),
   listTeachers: token => request('/admin/teachers', { token }),
   createTeacher: (token, data) => request('/admin/teachers', { method: 'POST', token, body: data }),
-  updateTeacherSubjects: (token, teacherId, subjects) =>
-    request(`/admin/teachers/${teacherId}/subjects`, { method: 'PUT', token, body: { subjects } }),
+  getSubjects: token => request('/admin/subjects', { token }),
+  createSubject: (token, data) => request('/admin/subjects', { method: 'POST', token, body: data }),
+  updateSubjectTeachers: (token, subjectId, teacherIds) =>
+    request(`/admin/subjects/${subjectId}/teachers`, { method: 'PUT', token, body: { teacher_ids: teacherIds } }),
   importStudents: (token, csv) => request('/admin/students/import', { method: 'POST', token, body: { csv } }),
   listStudents: token => request('/admin/students', { token }),
   deleteStudent: (token, studentId) => request(`/admin/students/${studentId}`, { method: 'DELETE', token }),
@@ -54,6 +56,7 @@ export const api = {
   myAccount: token => request('/student/account', { token }),
   myEnrollment: token => request('/student/enrollment', { token }),
   myCertificate: token => request('/student/certificate', { token }),
+  mySchedule: token => request('/student/schedule', { token }),
 
   listAccountStudents: token => request('/accounts/students', { token }),
   getAccount: (token, studentId, schoolYear) =>

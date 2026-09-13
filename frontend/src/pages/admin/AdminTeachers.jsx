@@ -3,9 +3,21 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
 
-// Must match backend/src/lib/curriculum.js SUBJECTS — the curriculum is fixed
-// for this mock school, so there's no endpoint to fetch it dynamically.
-const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
+// Groups a teacher's {subject, grade_level} assignments into one line per
+// grade, e.g. "Grade 1: Filipino, Math · Grade 4: Science" — read-only here;
+// assignments are made on the Subjects tab (per grade/subject, since one
+// subject in one grade can have more than one teacher).
+function formatSubjects(subjects) {
+  if (!subjects.length) return '—';
+  const byGrade = {};
+  subjects.forEach(({ subject, grade_level }) => {
+    (byGrade[grade_level] ??= []).push(subject);
+  });
+  return Object.keys(byGrade)
+    .sort((a, b) => a - b)
+    .map(g => `Grade ${g}: ${byGrade[g].join(', ')}`)
+    .join(' · ');
+}
 
 export default function AdminTeachers() {
   const { session } = useAuth();
@@ -13,29 +25,12 @@ export default function AdminTeachers() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
-  const [savingId, setSavingId] = useState(null);
 
   function load() {
     api.listTeachers(session.token).then(setTeachers).catch(err => setError(err.message));
   }
 
   useEffect(load, [session]);
-
-  async function toggleSubject(teacher, subject) {
-    const next = teacher.subjects.includes(subject)
-      ? teacher.subjects.filter(s => s !== subject)
-      : [...teacher.subjects, subject];
-    setSavingId(teacher.teacher_id);
-    setError('');
-    try {
-      await api.updateTeacherSubjects(session.token, teacher.teacher_id, next);
-      setTeachers(ts => ts.map(t => t.teacher_id === teacher.teacher_id ? { ...t, subjects: next } : t));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSavingId(null);
-    }
-  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -79,7 +74,7 @@ export default function AdminTeachers() {
       <div className="card">
         <h3>All Teachers ({teachers.length})</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: -8 }}>
-          Click a subject to assign or unassign it from that teacher.
+          Subject assignments are managed on the Subjects tab (per grade — one subject can have more than one teacher).
         </p>
         <table>
           <thead><tr><th>Name</th><th>Email</th><th>Advises</th><th>Subjects</th></tr></thead>
@@ -89,22 +84,7 @@ export default function AdminTeachers() {
                 <td>{t.name}</td>
                 <td>{t.email}</td>
                 <td>{t.advises_grade ? `Grade ${t.advises_grade} — ${t.advises_section}` : '—'}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {SUBJECTS.map(subject => (
-                      <button
-                        key={subject}
-                        type="button"
-                        disabled={savingId === t.teacher_id}
-                        className={t.subjects.includes(subject) ? 'secondary' : 'ghost'}
-                        style={{ padding: '4px 10px', fontSize: 12 }}
-                        onClick={() => toggleSubject(t, subject)}
-                      >
-                        {subject}
-                      </button>
-                    ))}
-                  </div>
-                </td>
+                <td>{formatSubjects(t.subjects)}</td>
               </tr>
             ))}
           </tbody>

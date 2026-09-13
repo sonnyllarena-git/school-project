@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTeachers from './pages/admin/AdminTeachers';
+import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminStudents from './pages/admin/AdminStudents';
 import AdminImport from './pages/admin/AdminImport';
 import AdminExport from './pages/admin/AdminExport';
@@ -16,6 +17,7 @@ import StudentGrades from './pages/student/StudentGrades';
 import StudentAttendance from './pages/student/StudentAttendance';
 import StudentAccount from './pages/student/StudentAccount';
 import StudentEnrollment from './pages/student/StudentEnrollment';
+import StudentSchedule from './pages/student/StudentSchedule';
 import StatusPage from './pages/StatusPage';
 import LegalDoc from './pages/LegalDoc';
 import Certificate from './pages/Certificate';
@@ -32,6 +34,7 @@ export default function App() {
 
           <Route path="/admin" element={<ProtectedRoute role="ADMIN"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/teachers" element={<ProtectedRoute role="ADMIN"><AdminTeachers /></ProtectedRoute>} />
+          <Route path="/admin/subjects" element={<ProtectedRoute role="ADMIN"><AdminSubjects /></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute role="ADMIN"><AdminStudents /></ProtectedRoute>} />
           <Route path="/admin/import" element={<ProtectedRoute role="ADMIN"><AdminImport /></ProtectedRoute>} />
           <Route path="/admin/export" element={<ProtectedRoute role="ADMIN"><AdminExport /></ProtectedRoute>} />
@@ -46,6 +49,7 @@ export default function App() {
           <Route path="/student/attendance" element={<ProtectedRoute role="STUDENT"><StudentAttendance /></ProtectedRoute>} />
           <Route path="/student/account" element={<ProtectedRoute role="STUDENT"><StudentAccount /></ProtectedRoute>} />
           <Route path="/student/enrollment" element={<ProtectedRoute role="STUDENT"><StudentEnrollment /></ProtectedRoute>} />
+          <Route path="/student/schedule" element={<ProtectedRoute role="STUDENT"><StudentSchedule /></ProtectedRoute>} />
           <Route path="/student/certificate" element={<ProtectedRoute role="STUDENT"><Certificate source="student" /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />

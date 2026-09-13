@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { api } from '../lib/api';
 import AccountView from './AccountView';
+import ScheduleView from './ScheduleView';
 
 export default function StudentDetailModal({ token, student, onClose }) {
   const navigate = useNavigate();
   const [account, setAccount] = useState(null);
+  const [schedule, setSchedule] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -14,6 +16,20 @@ export default function StudentDetailModal({ token, student, onClose }) {
     setError('');
     api.getAccount(token, student.student_id).then(setAccount).catch(err => setError(err.message));
   }, [student.student_id, token]);
+
+  useEffect(() => {
+    setSchedule(null);
+    api.getSubjects(token).then(grades => {
+      const gradeEntry = grades.find(g => g.grade_level === student.grade_level);
+      setSchedule({
+        grade_level: student.grade_level,
+        section: student.section,
+        subjects: (gradeEntry?.subjects || []).map(s => ({
+          code: s.code, name: s.name, schedule: s.schedule, teachers: s.teachers.map(t => t.name),
+        })),
+      });
+    }).catch(err => setError(err.message));
+  }, [student.student_id, student.grade_level, token]);
 
   return (
     <div className="modal-backdrop center" onClick={onClose}>
@@ -46,6 +62,10 @@ export default function StudentDetailModal({ token, student, onClose }) {
         <div className="modal-section">
           {error && <div className="error-banner">{error}</div>}
           <AccountView account={account} />
+        </div>
+
+        <div className="modal-section">
+          <ScheduleView schedule={schedule} />
         </div>
 
         <div className="modal-section">

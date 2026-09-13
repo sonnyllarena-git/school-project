@@ -40,6 +40,44 @@ router.get('/account', async (req, res) => {
   res.json(await getStudentAccount(studentId));
 });
 
+// Weekly class schedule for the student's own grade — the mock schedule set
+// up per subject on the admin Subjects tab (backend/src/routes/admin.js).
+router.get('/schedule', async (req, res) => {
+  const studentId = await ownStudentId(req.user.user_id);
+  if (!studentId) return res.status(404).json({ error: 'no student record linked to this account' });
+
+  const { rows: classRows } = await pool.query(
+    `SELECT c.grade_level, c.section FROM students s JOIN classes c ON c.class_id = s.class_id WHERE s.student_id = $1`,
+    [studentId]
+  );
+  const gradeLevel = classRows[0]?.grade_level;
+  if (gradeLevel == null) return res.json({ grade_level: null, section: null, subjects: [] });
+
+  const { rows: subjects } = await pool.query(
+    `SELECT subject_id, code, name, schedule_days, start_time, end_time, room
+     FROM subjects WHERE school_id = $1 AND grade_level = $2 ORDER BY start_time NULLS LAST, name`,
+    [req.user.school_id, gradeLevel]
+  );
+  const { rows: assignments } = await pool.query(
+    `SELECT ts.subject_id, u.name AS teacher_name
+     FROM teacher_subjects ts
+     JOIN teachers t ON t.teacher_id = ts.teacher_id
+     JOIN users u ON u.user_id = t.user_id
+     WHERE ts.subject_id = ANY($1)`,
+    [subjects.map(s => s.subject_id)]
+  );
+  res.json({
+    grade_level: gradeLevel,
+    section: classRows[0]?.section,
+    subjects: subjects.map(s => ({
+      code: s.code,
+      name: s.name,
+      schedule: { days: s.schedule_days, start_time: s.start_time, end_time: s.end_time, room: s.room },
+      teachers: assignments.filter(a => a.subject_id === s.subject_id).map(a => a.teacher_name),
+    })),
+  });
+});
+
 router.get('/enrollment', async (req, res) => {
   const studentId = await ownStudentId(req.user.user_id);
   if (!studentId) return res.status(404).json({ error: 'no student record linked to this account' });

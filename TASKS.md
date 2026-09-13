@@ -289,3 +289,82 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     students in different grades — confirmed by LRN), single-clicked a row and confirmed nothing
     happens (no navigation, no modal)
 
+- [x] **Task AA: Subjects Tab (per Grade, Subject Code/Name/Teacher(s))**
+  - New Admin nav item "Subjects" → grade-tabbed page (Grade 1-6, reusing the existing `.tabs` CSS
+    that had been defined but unused until now); each tab shows a table of Code / Subject / Teacher(s)
+  - `teacher_subjects` gained a `grade_level` column (PK is now `teacher_id, subject, grade_level`) —
+    assignment is scoped per grade, not just per teacher, because **one subject in one grade can have
+    more than one teacher** (the actual ask): a floating specialist can co-teach alongside the class
+    adviser. This superseded Task Y's teacher-centric subject toggle, which had no grade dimension
+  - New `GET /admin/subjects` (grade × subject matrix, each cell listing assigned teachers) and
+    `PUT /admin/subjects/:gradeLevel/:subject/teachers` (replaces the full teacher set for that
+    grade+subject pair); removed the old `PUT /admin/teachers/:teacherId/subjects` (no grade context,
+    would violate the new NOT NULL `grade_level` column)
+  - Added `SUBJECT_CODES` to `curriculum.js` (Filipino→FIL, English→ENG, Math→MATH, Science→SCI,
+    Values Education→VE) — computed server-side so the frontend doesn't hardcode a second copy
+  - `AdminTeachers.jsx`'s per-teacher subject chips (Task Y) removed — editing now happens on the
+    Subjects tab; Teachers page shows a read-only "Grade N: Subject, Subject" summary instead
+  - Seed: advisers keep all 5 subjects for their own grade (as before); the two floating teachers,
+    previously left unassigned, now co-teach specific subjects in grades 4-6 (Ms. Rosa Guinto —
+    Values Education; Mr. Alfonso Reyes — Science) — a real multi-teacher-per-subject case to load
+    the page with, instead of an empty one
+  - Verify: curled `/admin/subjects` (confirmed Grade 4 Science lists both Ramon Santos and Alfonso
+    Reyes), curled the PUT endpoint's validation (rejects an unknown subject, an out-of-range grade),
+    and a real assignment change; in the browser, clicked between grade tabs, toggled a teacher chip
+    on and confirmed it appeared instantly and matched the DB, toggled it back off, and confirmed the
+    Teachers page's read-only summary reflects the same underlying data
+
+- [x] **Task AB: Subject Catalog Rework — Admin-Created Subjects, Unique Codes, Schedule, Detail Modal**
+  - Reworked Task AA's fixed-list subjects into a real admin-managed catalog: a new `subjects` table,
+    one row per (grade, subject) *instance* — not a shared 5-item list. Each row has its own globally
+    unique `code` (e.g. `MATH1` for Grade 1 Math vs `MATH4` for Grade 4 Math — previously both were
+    just "MATH"), and its own mock schedule (`schedule_days`, `start_time`, `end_time`, `room`)
+  - `teacher_subjects` now keys off `subject_id` (FK into `subjects`) instead of a free-text
+    `(subject, grade_level)` pair — a straight rename of what it points at, same many-to-many shape
+  - `POST /admin/subjects` lets the admin create a new subject for a grade (own code/name/schedule);
+    duplicate codes rejected with 409. `PUT /admin/subjects/:subjectId/teachers` replaces the old
+    grade+subject-keyed route now that subjects are individually identified
+  - Frontend interaction redesigned per explicit feedback — **no more click-a-chip-and-it-assigns-
+    immediately** in the table:
+    - Main table now shows only Code + Subject + an expand arrow; clicking it reveals Teacher(s) +
+      Schedule + Room inline (read-only) — teacher chips removed from the table entirely
+    - Double-clicking a subject row opens `SubjectDetailModal` (code, name, grade, schedule, current
+      teachers with individual Remove buttons, a "assign another teacher" dropdown + button) — assignment
+      now happens deliberately inside a modal you had to double-click to open, not by brushing past a
+      chip in the table
+    - New `AddSubjectModal` (button: "+ Add Subject" on the Subjects tab) lets the admin create a
+      subject for the currently-open grade tab
+  - Scope boundary (flagged, not solved): this catalog is independent of `grades.subject` (free text,
+    teacher grade entry) and curriculum.js's fixed `SUBJECTS` list (enrollment/grade-entry display) —
+    a subject added here does not become gradeable in Teacher > Grades or appear on the enrollment
+    subjects list. Unifying those is a separate, bigger task, not assumed done
+  - Open question raised back to the user (not yet built): where the per-subject mock schedule should
+    surface for students — a new "My Schedule" tab, a card on Student Accounts, or the printable
+    Certificate of Matriculation. Recommended a new tab (see chat) but held off building it pending
+    the user's call
+  - Verify: curled `POST /admin/subjects` (created, then rejected a duplicate code, then rejected
+    missing fields); in the browser confirmed unique per-grade codes render (ENG1/FIL1/.../ENG4/...),
+    expanded a row to see teacher(s) + schedule + room, double-clicked to open the detail modal,
+    assigned and then removed a teacher from inside the modal (confirmed against the DB both times),
+    created a real subject via "+ Add Subject" and confirmed it appeared in the table, and confirmed
+    the Teachers page's read-only summary still renders correctly against the reworked schema
+
+- [x] **Task AC: Student-Facing Schedule View**
+  - Resolved the open question from Task AB (asked the user where the schedule should surface) —
+    a new "My Schedule" student tab, not a card on Accounts (money-focused page) or the printable
+    Certificate (a one-time promotion record, not a living timetable)
+  - `GET /student/schedule` — resolves the student's own class → grade level, returns that grade's
+    subjects with teacher(s), days, time, and room (same shape `/admin/subjects` already produces per
+    grade, just scoped to one student's own grade instead of the whole school)
+  - New shared `ScheduleView` component (mirrors how `AccountView` is shared between the admin Accounts
+    page and the student's own Account page) — used by the new student "My Schedule" page **and**
+    added as a section inside the admin `StudentDetailModal` (Task Z), so an admin double-clicking a
+    student on the Students page now sees that student's schedule alongside their SOA in one place
+  - Extracted `formatTime()` (HH:MM → "8:00 AM") out of `AdminSubjects`/`SubjectDetailModal` into a
+    shared `lib/format.js` while touching those files again, rather than adding a third copy in
+    `ScheduleView`
+  - Verify: curled `/student/schedule` as a Grade 1 student (confirmed 5 subjects with the seeded
+    schedule); in the browser, opened "My Schedule" as a student and saw the same 5 subjects with
+    days/time/room; double-clicked a student on the admin Students page and confirmed the same
+    student's schedule appears inside the detail modal, below their Statement of Account
+

@@ -2,7 +2,7 @@ require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
 const { Client } = require('pg');
 const { encrypt } = require('../src/lib/crypto');
-const { SUBJECTS, feeTemplateForGrade } = require('../src/lib/curriculum');
+const { SUBJECTS, SUBJECT_CODES, feeTemplateForGrade } = require('../src/lib/curriculum');
 
 const SCHOOL_ID = 'STM001';
 const SCHOOL_YEAR = '2025-2026';
@@ -51,7 +51,7 @@ async function main() {
   await client.connect();
 
   await client.query(
-    'TRUNCATE TABLE audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, teachers, users, schools RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects, teachers, users, schools RESTART IDENTITY CASCADE'
   );
 
   await client.query(
@@ -86,19 +86,54 @@ async function main() {
   }
   await bulkInsert(client, 'classes', ['class_id', 'school_id', 'grade_level', 'section', 'teacher_id', 'room', 'school_year'], classRows);
 
+  // One subject "instance" per (grade, subject) — each gets its own unique
+  // code (e.g. MATH1 for Grade 1 Math, MATH4 for Grade 4 Math) and its own
+  // mock class schedule. Schedule pattern is fixed per subject name (same
+  // time-of-day story across grades, different room per grade) — illustrative
+  // only, not sourced from any real timetable.
+  const SUBJECT_SCHEDULE = {
+    Filipino: { days: 'Mon/Wed/Fri', start_time: '08:00', end_time: '09:00' },
+    English: { days: 'Tue/Thu', start_time: '08:00', end_time: '09:30' },
+    Math: { days: 'Mon/Wed/Fri', start_time: '09:00', end_time: '10:00' },
+    Science: { days: 'Tue/Thu', start_time: '09:30', end_time: '10:30' },
+    'Values Education': { days: 'Mon/Wed/Fri', start_time: '10:00', end_time: '10:30' },
+  };
+  const subjectRows = [];
+  const subjectIdByGradeSubject = {};
+  for (let grade = 1; grade <= 6; grade++) {
+    const room = `${100 + grade * 10}`;
+    for (const subject of SUBJECTS) {
+      const subjectId = `SUBJ-${grade}-${SUBJECT_CODES[subject]}`;
+      const sched = SUBJECT_SCHEDULE[subject];
+      subjectRows.push([
+        subjectId, SCHOOL_ID, grade, `${SUBJECT_CODES[subject]}${grade}`, subject,
+        sched.days, sched.start_time, sched.end_time, room,
+      ]);
+      subjectIdByGradeSubject[`${grade}|${subject}`] = subjectId;
+    }
+  }
+  await bulkInsert(client, 'subjects',
+    ['subject_id', 'school_id', 'grade_level', 'code', 'name', 'schedule_days', 'start_time', 'end_time', 'room'],
+    subjectRows);
+
   // Grade advisers (1-6) already teach every subject to their own class (see
-  // gradeRows below) — assign them all of SUBJECTS to match reality. The two
-  // floating teachers (no class, t.grade === null) are left unassigned so the
-  // admin Teachers-page assignment UI has a real "not yet assigned" case to
-  // demo against.
+  // gradeRows below) — assign them all 5 subject instances for their own
+  // grade to match reality. The two floating teachers (no class, t.grade ===
+  // null) are additionally assigned as a second teacher for a couple of
+  // subjects in the upper grades — a real "more than one teacher per subject"
+  // case for the Subjects tab to demo, instead of an unassigned no-op.
   const teacherSubjectRows = [];
   for (const t of TEACHERS) {
     if (t.grade === null) continue;
     for (const subject of SUBJECTS) {
-      teacherSubjectRows.push([`TCH-${pad(t.n, 3)}`, subject]);
+      teacherSubjectRows.push([`TCH-${pad(t.n, 3)}`, subjectIdByGradeSubject[`${t.grade}|${subject}`]]);
     }
   }
-  await bulkInsert(client, 'teacher_subjects', ['teacher_id', 'subject'], teacherSubjectRows);
+  for (const grade of [4, 5, 6]) {
+    teacherSubjectRows.push(['TCH-007', subjectIdByGradeSubject[`${grade}|Values Education`]]); // Ms. Rosa Guinto, co-teaching
+    teacherSubjectRows.push(['TCH-008', subjectIdByGradeSubject[`${grade}|Science`]]); // Mr. Alfonso Reyes, co-teaching
+  }
+  await bulkInsert(client, 'teacher_subjects', ['teacher_id', 'subject_id'], teacherSubjectRows);
 
   const studentRows = [];
   const attendanceRows = [];

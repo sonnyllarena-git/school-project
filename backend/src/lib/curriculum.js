@@ -5,6 +5,16 @@
 const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
 const PASSING_GRADE = 75;
 
+// DepEd-style short codes for the Subjects tab (admin/subjects) — display
+// only, not used as a lookup key anywhere subject records are stored.
+const SUBJECT_CODES = {
+  Filipino: 'FIL',
+  English: 'ENG',
+  Math: 'MATH',
+  Science: 'SCI',
+  'Values Education': 'VE',
+};
+
 const FEE_TEMPLATES = {
   low: [ // Grades 1-3
     { fee_type: 'Tuition Fee', amount: 15000 },
@@ -32,4 +42,4 @@ function nextSchoolYear(schoolYear) {
   return `${start + 1}-${start + 2}`;
 }
 
-module.exports = { SUBJECTS, PASSING_GRADE, FEE_TEMPLATES, feeTemplateForGrade, nextSchoolYear };
+module.exports = { SUBJECTS, SUBJECT_CODES, PASSING_GRADE, FEE_TEMPLATES, feeTemplateForGrade, nextSchoolYear };
