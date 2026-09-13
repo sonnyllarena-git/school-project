@@ -1,15 +1,5 @@
 import StatCard from './StatCard';
-
-const STATUS_LABEL = {
-  FULLY_PAID: 'Fully Paid — Enrolled',
-  PARTIALLY_PAID: 'Partially Paid',
-  PENDING_PAYMENT: 'Pending Payment',
-};
-const STATUS_PILL = {
-  FULLY_PAID: 'success',
-  PARTIALLY_PAID: 'warn',
-  PENDING_PAYMENT: 'danger',
-};
+import { STATUS_LABEL, STATUS_PILL } from '../lib/accountStatus';
 
 const peso = n => `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
@@ -18,6 +8,19 @@ export default function AccountView({ account }) {
 
   return (
     <>
+      {(account.grade_level || account.adviser_name) && (
+        <div className="form-row" style={{ marginBottom: 16 }}>
+          <div>
+            <label>Grade & Section</label>
+            <div>{account.grade_level ? `Grade ${account.grade_level} — ${account.section}` : '—'}</div>
+          </div>
+          <div>
+            <label>Adviser</label>
+            <div>{account.adviser_name || '—'}</div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
         <StatCard label="Total Assessed" value={peso(account.total_assessed)} />
         <StatCard label="Total Paid" value={peso(account.total_paid)} />

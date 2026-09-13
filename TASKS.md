@@ -233,3 +233,59 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     Notifications + Change Password were added) became unreachable — only caught by actually scrolling
     the rendered page, not by reading the JSX
 
+- [x] **Task Y: Student Metadata (Grade/Section), Accounts Filters, Adviser Display, Teacher Subjects**
+  - Grade/section were already modeled (`classes.grade_level`/`section` via `students.class_id`) —
+    this task exposes them, not a new column: `GET /admin/students` and `GET /accounts/students` now
+    join `classes` to return `grade_level`/`section` per student
+  - `GET /accounts/students` now returns a full per-student summary (grade, section, adviser name,
+    computed `total_assessed`/`total_paid`/`balance`/`status`) in one query — the Accounts page filters
+    by Grade / Section / Payment Status entirely client-side against this list (150 rows, no need for
+    server-side filter params)
+  - `getStudentAccount()` (`backend/src/lib/account.js`) now also returns `grade_level`/`section`/
+    `adviser_name` (adviser = the student's class's `teacher_id`) — surfaced on both the Admin Accounts
+    page and the student's own Account page via a shared `AccountView` component change
+  - New `teacher_subjects` table (`teacher_id`, `subject`) — independent of class advisory
+    (`classes.teacher_id`): `GET /admin/teachers` returns each teacher's assigned subjects + which
+    grade/section they advise (if any); `PUT /admin/teachers/:teacherId/subjects` replaces the full
+    set. Admin Teachers page: click a subject chip to assign/unassign
+  - Seed: the 6 grade advisers (1-6) are assigned all 5 `SUBJECTS` (matches what they already grade for
+    their own class); the 2 floating teachers (no class) start with none assigned — a real "not yet
+    assigned" case for the admin UI to demo against
+  - Students page: added Grade/Section columns + a Grade/Section filter; clicking a row now navigates
+    to `/admin/accounts?student=<id>`, which the Accounts page reads via `useSearchParams` to
+    preselect that student
+  - `backup.js`/`restore.js`/`seed.js` table lists updated to include `teacher_subjects`
+  - Verify: curled every changed/new endpoint directly (grade/section present, adviser name correct,
+    subject PUT validates against the fixed subject list and rejects unknown ones); in the browser,
+    filtered Students by grade, clicked a row into Accounts and confirmed the right student + grade/
+    section/adviser loaded, filtered Accounts by Fully Paid (56/150), toggled a subject chip on a
+    floating teacher and confirmed it persisted in the DB
+  - Bug found and fixed: first version of `getStudentAccount()`'s return statement used shorthand
+    property `fee_items` instead of `fee_items: feeItems` — the destructured query result was named
+    `feeItems` (camelCase), so the shorthand referenced a variable that didn't exist and threw
+    `ReferenceError: fee_items is not defined` on every account lookup. Only caught by actually calling
+    the endpoint (500 error), not by reading the diff.
+
+- [x] **Task Z: Students Tab — Search, Enrollment Status, Details Modal**
+  - Search box with a native `<datalist>` (browser-autocomplete on student name) — filters the table
+    client-side by name or LRN substring match, alongside the existing Grade/Section filters
+  - Replaced the roster `Status` column (raw `students.status` admin flag) with a computed
+    **Enrollment Status** column (`PENDING_PAYMENT`/`PARTIALLY_PAID`/`FULLY_PAID` — same formula and
+    labels as the Accounts page), and added it as a fourth filter
+  - Extracted the shared status formula into `computeStatus()` (`backend/src/lib/account.js`), used by
+    `getStudentAccount`, `GET /accounts/students`, and the newly-updated `GET /admin/students` — one
+    source of truth instead of three copies of the same PENDING/PARTIAL/FULLY_PAID logic
+  - Frontend: new `frontend/src/lib/accountStatus.js` (STATUS_LABEL/STATUS_PILL/STATUS_OPTIONS) shared
+    by `AccountView`, `AdminAccounts`, and `AdminStudents` — same reasoning as the backend dedup
+  - Row interaction changed from single-click-navigates to **double-click opens a modal**
+    (`StudentDetailModal.jsx`): shows DOB/gender/roster status plus the same `AccountView` used
+    elsewhere (grade/section/adviser/SOA/payment history), with a button to jump to the full Accounts
+    page (to record a payment) — single click now does nothing, by design
+  - New CSS: `.modal-backdrop.center`/`.modal-panel.wide` — the existing `.modal-panel` was sized and
+    positioned for the narrow top-right Settings drawer, too cramped for a full account view
+  - Verify: curled `/admin/students`, confirmed `enrollment_status`/`balance` present and correct; in
+    the browser, searched "Angela" (13/150 matched across grades), filtered by Enrollment Status,
+    double-clicked a row and confirmed the modal showed the *correct* student (there are same-named
+    students in different grades — confirmed by LRN), single-clicked a row and confirmed nothing
+    happens (no navigation, no modal)
+

@@ -9,7 +9,7 @@
 -- phase (seed.js always repopulates from scratch); revisit before real data
 -- exists — this would then need real migrations instead of DROP + CREATE.
 DROP TABLE IF EXISTS backups, audit_logs, enrollments, payments, fee_items, grades,
-  attendance, students, classes, teachers, users, schools,
+  attendance, students, classes, teacher_subjects, teachers, users, schools,
   student_guardians, guardians CASCADE; -- one-time cleanup of retired Parent-role tables
 
 CREATE TABLE schools (
@@ -46,6 +46,17 @@ CREATE TABLE teachers (
   teacher_id    TEXT PRIMARY KEY,
   user_id       TEXT NOT NULL UNIQUE REFERENCES users(user_id),
   school_id     TEXT NOT NULL REFERENCES schools(school_id)
+);
+
+-- Which subjects a teacher is assigned to teach — independent of class
+-- advisory (classes.teacher_id). Elementary advisers typically teach every
+-- subject to their own class already; this exists for the floating/specialist
+-- teachers who have no class of their own, and to make the assignment an
+-- explicit, admin-editable fact rather than an implicit "whatever they grade."
+CREATE TABLE teacher_subjects (
+  teacher_id    TEXT NOT NULL REFERENCES teachers(teacher_id),
+  subject       TEXT NOT NULL,
+  PRIMARY KEY (teacher_id, subject)
 );
 
 CREATE TABLE classes (

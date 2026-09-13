@@ -51,7 +51,7 @@ async function main() {
   await client.connect();
 
   await client.query(
-    'TRUNCATE TABLE audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teachers, users, schools RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, teachers, users, schools RESTART IDENTITY CASCADE'
   );
 
   await client.query(
@@ -85,6 +85,20 @@ async function main() {
     classRows.push([`CLS${pad(t.grade, 3)}`, SCHOOL_ID, t.grade, 'A', `TCH-${pad(t.n, 3)}`, `${100 + t.grade * 10}`, '2025-2026']);
   }
   await bulkInsert(client, 'classes', ['class_id', 'school_id', 'grade_level', 'section', 'teacher_id', 'room', 'school_year'], classRows);
+
+  // Grade advisers (1-6) already teach every subject to their own class (see
+  // gradeRows below) — assign them all of SUBJECTS to match reality. The two
+  // floating teachers (no class, t.grade === null) are left unassigned so the
+  // admin Teachers-page assignment UI has a real "not yet assigned" case to
+  // demo against.
+  const teacherSubjectRows = [];
+  for (const t of TEACHERS) {
+    if (t.grade === null) continue;
+    for (const subject of SUBJECTS) {
+      teacherSubjectRows.push([`TCH-${pad(t.n, 3)}`, subject]);
+    }
+  }
+  await bulkInsert(client, 'teacher_subjects', ['teacher_id', 'subject'], teacherSubjectRows);
 
   const studentRows = [];
   const attendanceRows = [];

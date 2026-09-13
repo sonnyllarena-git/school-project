@@ -29,6 +29,8 @@ export const api = {
   updateSchool: (token, fields) => request('/admin/school', { method: 'PATCH', token, body: fields }),
   listTeachers: token => request('/admin/teachers', { token }),
   createTeacher: (token, data) => request('/admin/teachers', { method: 'POST', token, body: data }),
+  updateTeacherSubjects: (token, teacherId, subjects) =>
+    request(`/admin/teachers/${teacherId}/subjects`, { method: 'PUT', token, body: { subjects } }),
   importStudents: (token, csv) => request('/admin/students/import', { method: 'POST', token, body: { csv } }),
   listStudents: token => request('/admin/students', { token }),
   deleteStudent: (token, studentId) => request(`/admin/students/${studentId}`, { method: 'DELETE', token }),

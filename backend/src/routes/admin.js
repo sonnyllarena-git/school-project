@@ -5,17 +5,39 @@ const pool = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { parseCsv, toCsv } = require('../lib/csv');
 const { encrypt, decrypt } = require('../lib/crypto');
+const { SUBJECTS } = require('../lib/curriculum');
+const { CURRENT_SCHOOL_YEAR, computeStatus } = require('../lib/account');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('ADMIN'));
 
+// enrollment_status is the same computed PENDING_PAYMENT/PARTIALLY_PAID/
+// FULLY_PAID used on the Accounts page (see lib/account.js) — shown here
+// instead of the raw `students.status` administrative flag, per the roster
+// page's "what's their enrollment/payment standing" use case.
 router.get('/students', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT student_id, lrn, name, date_of_birth, gender, class_id, status
-     FROM students WHERE school_id = $1 ORDER BY class_id, name`,
-    [req.user.school_id]
+    `SELECT s.student_id, s.lrn, s.name, s.date_of_birth, s.gender, s.class_id, s.status,
+            c.grade_level, c.section,
+            COALESCE(fi.total_assessed, 0) AS total_assessed, COALESCE(p.total_paid, 0) AS total_paid
+     FROM students s
+     LEFT JOIN classes c ON c.class_id = s.class_id
+     LEFT JOIN (SELECT student_id, SUM(amount) AS total_assessed FROM fee_items WHERE school_year = $2 GROUP BY student_id) fi
+       ON fi.student_id = s.student_id
+     LEFT JOIN (SELECT student_id, SUM(amount) AS total_paid FROM payments WHERE school_year = $2 GROUP BY student_id) p
+       ON p.student_id = s.student_id
+     WHERE s.school_id = $1
+     ORDER BY c.grade_level, c.section, s.name`,
+    [req.user.school_id, CURRENT_SCHOOL_YEAR]
   );
-  rows.forEach(r => { if (r.date_of_birth) r.date_of_birth = decrypt(r.date_of_birth); });
+  rows.forEach(r => {
+    if (r.date_of_birth) r.date_of_birth = decrypt(r.date_of_birth);
+    const { balance, status } = computeStatus(Number(r.total_assessed), Number(r.total_paid));
+    r.balance = balance;
+    r.enrollment_status = status;
+    delete r.total_assessed;
+    delete r.total_paid;
+  });
   res.json(rows);
 });
 
@@ -86,12 +108,50 @@ router.patch('/school', async (req, res) => {
 
 router.get('/teachers', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT t.teacher_id, u.user_id, u.name, u.email
-     FROM teachers t JOIN users u ON u.user_id = t.user_id
-     WHERE t.school_id = $1 ORDER BY u.name`,
+    `SELECT t.teacher_id, u.user_id, u.name, u.email, c.grade_level AS advises_grade, c.section AS advises_section,
+            COALESCE(array_agg(ts.subject) FILTER (WHERE ts.subject IS NOT NULL), '{}') AS subjects
+     FROM teachers t
+     JOIN users u ON u.user_id = t.user_id
+     LEFT JOIN classes c ON c.teacher_id = t.teacher_id
+     LEFT JOIN teacher_subjects ts ON ts.teacher_id = t.teacher_id
+     WHERE t.school_id = $1
+     GROUP BY t.teacher_id, u.user_id, u.name, u.email, c.grade_level, c.section
+     ORDER BY u.name`,
     [req.user.school_id]
   );
   res.json(rows);
+});
+
+// Replaces a teacher's full subject-assignment set (not incremental) — the
+// admin UI always sends the complete checked set, so delete+reinsert in one
+// transaction is simpler and just as correct as a diff.
+router.put('/teachers/:teacherId/subjects', async (req, res) => {
+  const { subjects } = req.body;
+  if (!Array.isArray(subjects) || subjects.some(s => !SUBJECTS.includes(s))) {
+    return res.status(400).json({ error: `subjects must be an array drawn from: ${SUBJECTS.join(', ')}` });
+  }
+  const { rows } = await pool.query(
+    'SELECT teacher_id FROM teachers WHERE teacher_id = $1 AND school_id = $2',
+    [req.params.teacherId, req.user.school_id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'teacher not found' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM teacher_subjects WHERE teacher_id = $1', [req.params.teacherId]);
+    for (const subject of subjects) {
+      await client.query('INSERT INTO teacher_subjects (teacher_id, subject) VALUES ($1, $2)', [req.params.teacherId, subject]);
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.json({ teacher_id: req.params.teacherId, subjects });
 });
 
 router.post('/teachers', async (req, res) => {
