@@ -157,7 +157,7 @@ would have missed — see LESSONS.md.
 
 - [x] **Task R: Right-to-Deletion**
   - `GET /admin/students` (roster list), `DELETE /admin/students/:studentId` (cascades attendance/grades/
-    guardian links, audit-logged)
+    fee_items/payments/enrollments, audit-logged)
   - Admin UI: students list page with a delete action (confirm before deleting)
   - Verify: delete a student, confirm all related rows are gone and an audit_log entry exists
   - Pass condition: matches CLAUDE.md §1.1 "Right-to-deletion feature"
@@ -179,4 +179,43 @@ would have missed — see LESSONS.md.
     links added to the login page and every authenticated page
   - Verify: opened `/legal/privacy-policy` with no session/token, content renders
   - Pass condition: matches CLAUDE.md §1.2 "Privacy Policy embedded in app (footer link, no login required)"
+
+---
+
+## Phase 3: Tuition/Accounts, Enrollment Workflow, Parent Role Removed
+
+Scope change directed by the user (not in the original CLAUDE.md MVP list) — see LESSONS.md.
+
+- [x] **Task U: Remove Parent Role**
+  - Dropped `guardians`/`student_guardians` tables, removed `PARENT` from `users.role`, deleted
+    `parent.js`/`ParentDashboard.jsx`/parent nav/login redirect
+  - Reasoning: the student login is the shared family login — a parent uses their child's account,
+    there's no separate parent identity
+  - Verify: confirmed no `guardians`/`student_guardians` tables remain after migrate; grepped
+    frontend + backend for stray `PARENT`/`guardian` references — none found
+
+- [x] **Task V: Tuition — Statement of Account & Manual Payments**
+  - `fee_items` (itemized charges) + `payments` (manual ledger — Cash/GCash/Bank Transfer, no payment
+    gateway) tables, one lump sum per school year (not per grading period — user's call)
+  - Enrollment/payment status is always computed (`PENDING_PAYMENT`/`PARTIALLY_PAID`/`FULLY_PAID`),
+    never manually overridden (user's call)
+  - `GET/POST /accounts/students/...` (Admin — doubles as "cashier", no separate role for now, per
+    user), `GET /student/account` (read-only)
+  - Mock data: realistic fee templates per grade band, ~2/3 of the 150 students have some payment
+    history (full/partial/pending mixed)
+  - Verify: recorded a real payment through the UI, watched status flip PENDING → PARTIAL → FULLY_PAID
+
+- [x] **Task W: Grade Promotion / Re-Enrollment Workflow**
+  - `enrollments` table: per-student, per-school-year pipeline — `VERIFIED → ASSESSED → PRINTED →
+    CERTIFICATE_ISSUED` (parent approval is deliberately NOT a tracked stage — offline, between
+    PRINTED and payment, per user's call)
+  - Promotion gate: current-year balance = ₱0 AND no final grade below 75 (DepEd passing mark)
+  - `CERTIFICATE_ISSUED` is the moment `students.class_id` actually moves to the next grade's class
+  - Certificate of Matriculation: printable in-app page (`/admin/students/:id/certificate`,
+    `/student/certificate`), not a PDF library — `window.print()`
+  - Admin: new Enrollment page (eligibility check → pipeline actions → inline payment form → issue
+    certificate). Student: new Enrollment page (current grade/subjects, promotion status, certificate link)
+  - Verify: ran the full pipeline end-to-end for a real student (STU-000002) — eligibility → verify →
+    assess → print → paid in full → certificate issued → confirmed `class_id` actually changed
+    (CLS001 → CLS002) → confirmed the student's own login reflects all of it
 

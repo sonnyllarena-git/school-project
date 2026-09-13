@@ -7,9 +7,13 @@
 ## §0 Project Summary
 
 **What:** School management system for small Philippine schools (100–800 students).
-- Role-based portal: Admin, Teacher, Student, Parent
+- Role-based portal: Admin, Teacher, Student. **No separate Parent role** — a parent uses their
+  child's Student login (removed post-MVP by direct request; see TASKS.md Phase 3, LESSONS.md)
 - DepEd-compliant (NPC data privacy, no vendor lock-in, offline-capable, disaster recovery)
 - MVP scope: Attendance, grades, roster, messaging, reports, data export
+- Post-MVP (Phase 3, added by direct request, not originally scoped here): tuition/Statement of
+  Account with manual payment recording, and a grade-promotion/re-enrollment workflow ending in a
+  printable Certificate of Matriculation — see TASKS.md Phase 3
 
 **Stack (to be confirmed):** Node.js + Express, React, PostgreSQL, JWT auth
 
@@ -71,7 +75,7 @@
 2. Teacher: Daily attendance marking per class
 3. Teacher: Grade entry (marks per term)
 4. Student view: My grades, my attendance (read-only)
-5. Parent view: Child's performance (read-only)
+5. ~~Parent view~~ — retired; a parent views their child's performance via the Student login (no separate Parent role/account)
 6. Admin: School reports (attendance %, grade distribution)
 7. Admin: Data export (CSV of all records)
 
@@ -97,7 +101,7 @@
   - [x] Admin can create school, add teachers, import student CSV
   - [x] Teacher can mark attendance for 1 class for 1 day without errors
   - [x] Grades entered by teacher appear in student view
-  - [x] Parent can view child's grades (correct filtering, no access to other students)
+  - [x] ~~Parent can view child's grades~~ — satisfied via the Student login instead (Parent role retired, see §0)
 
 - Phase 2 (Security & Compliance):
   - [x] All student data export works (CSV produced, matches database counts)

@@ -49,8 +49,21 @@ export const api = {
 
   myGrades: token => request('/student/grades', { token }),
   myAttendance: token => request('/student/attendance', { token }),
+  myAccount: token => request('/student/account', { token }),
+  myEnrollment: token => request('/student/enrollment', { token }),
+  myCertificate: token => request('/student/certificate', { token }),
 
-  myChildren: token => request('/parent/children', { token }),
-  childGrades: (token, studentId) => request(`/parent/children/${studentId}/grades`, { token }),
-  childAttendance: (token, studentId) => request(`/parent/children/${studentId}/attendance`, { token }),
+  listAccountStudents: token => request('/accounts/students', { token }),
+  getAccount: (token, studentId, schoolYear) =>
+    request(`/accounts/students/${studentId}${schoolYear ? `?school_year=${schoolYear}` : ''}`, { token }),
+  recordPayment: (token, studentId, data) =>
+    request(`/accounts/students/${studentId}/payments`, { method: 'POST', token, body: data }),
+
+  getEligibility: (token, studentId) => request(`/enrollment/${studentId}/eligibility`, { token }),
+  getEnrollment: (token, studentId) => request(`/enrollment/${studentId}`, { token }),
+  verifyEnrollment: (token, studentId) => request(`/enrollment/${studentId}/verify`, { method: 'POST', token }),
+  assessEnrollment: (token, studentId) => request(`/enrollment/${studentId}/assess`, { method: 'POST', token }),
+  markPrinted: (token, studentId) => request(`/enrollment/${studentId}/mark-printed`, { method: 'POST', token }),
+  issueCertificate: (token, studentId) => request(`/enrollment/${studentId}/issue-certificate`, { method: 'POST', token }),
+  getCertificate: (token, studentId) => request(`/enrollment/${studentId}/certificate`, { token }),
 };

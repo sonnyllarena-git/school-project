@@ -201,6 +201,16 @@ tr:last-child td { border-bottom: none; }
 .settings-user { display: flex; align-items: center; gap: 12px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; }
 
+.certificate {
+  max-width: 700px; margin: 0 auto; background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 48px; border: 1px solid var(--border);
+}
+.certificate-header { text-align: center; border-bottom: 2px solid var(--navy); padding-bottom: 16px; }
+@media print {
+  .no-print { display: none !important; }
+  body, .certificate { background: white !important; color: black !important; box-shadow: none !important; }
+}
+
 .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .tabs button { background: transparent; color: var(--text-muted); border-radius: 8px 8px 0 0; padding: 10px 16px; }
 .tabs button.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: var(--accent-soft); }

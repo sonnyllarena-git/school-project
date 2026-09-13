@@ -8,7 +8,7 @@ const path = require('path');
 const { Client } = require('pg');
 const { BACKUP_DIR } = require('../src/lib/backup');
 
-const TABLES_IN_ORDER = ['schools', 'users', 'teachers', 'classes', 'students', 'guardians', 'student_guardians', 'attendance', 'grades'];
+const TABLES_IN_ORDER = ['schools', 'users', 'teachers', 'classes', 'students', 'attendance', 'grades', 'fee_items', 'payments', 'enrollments'];
 
 async function restore(fileName) {
   const filePath = path.join(BACKUP_DIR, fileName);

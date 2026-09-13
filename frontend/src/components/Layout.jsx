@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Squares2X2Icon, UserGroupIcon, AcademicCapIcon, ArrowUpTrayIcon, ArrowDownTrayIcon,
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
-  HeartIcon, Cog6ToothIcon,
+  Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
@@ -17,6 +17,8 @@ const NAV_BY_ROLE = {
     { to: '/admin/students', label: 'Students', icon: AcademicCapIcon },
     { to: '/admin/import', label: 'Import Roster', icon: ArrowUpTrayIcon },
     { to: '/admin/export', label: 'Data Export', icon: ArrowDownTrayIcon },
+    { to: '/admin/accounts', label: 'Accounts', icon: BanknotesIcon },
+    { to: '/admin/enrollment', label: 'Enrollment', icon: ArrowUpCircleIcon },
   ],
   TEACHER: [
     { to: '/teacher/attendance', label: 'Attendance', icon: ClipboardDocumentCheckIcon },
@@ -25,9 +27,8 @@ const NAV_BY_ROLE = {
   STUDENT: [
     { to: '/student', label: 'My Grades', end: true, icon: ChartBarIcon },
     { to: '/student/attendance', label: 'My Attendance', icon: CalendarDaysIcon },
-  ],
-  PARENT: [
-    { to: '/parent', label: 'My Children', end: true, icon: HeartIcon },
+    { to: '/student/account', label: 'My Account', icon: BanknotesIcon },
+    { to: '/student/enrollment', label: 'Enrollment', icon: ArrowUpCircleIcon },
   ],
 };
 

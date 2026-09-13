@@ -174,6 +174,11 @@ For each student in each class:
 
 ## Parents (Guardians)
 
+> **Superseded:** the actual implementation does not have a separate Parent role/account — a parent
+> uses their child's Student login directly (see CLAUDE.md §0, TASKS.md Phase 3). This section is
+> kept as historical planning context only; no `guardians`/`student_guardians` tables or `PARENT`
+> users exist in the schema.
+
 **Sample Parent Accounts** (one per ~2–3 students):
 
 | Parent ID | Parent Name | Email | Phone | Student(s) | Password |

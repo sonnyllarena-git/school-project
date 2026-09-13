@@ -1,6 +1,10 @@
 const express = require('express');
 const pool = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { getStudentAccount, CURRENT_SCHOOL_YEAR } = require('../lib/account');
+const { SUBJECTS, nextSchoolYear } = require('../lib/curriculum');
+
+const NEXT_SCHOOL_YEAR = nextSchoolYear(CURRENT_SCHOOL_YEAR);
 
 const router = express.Router();
 router.use(requireAuth, requireRole('STUDENT'));
@@ -28,6 +32,54 @@ router.get('/attendance', async (req, res) => {
     [studentId]
   );
   res.json(rows);
+});
+
+router.get('/account', async (req, res) => {
+  const studentId = await ownStudentId(req.user.user_id);
+  if (!studentId) return res.status(404).json({ error: 'no student record linked to this account' });
+  res.json(await getStudentAccount(studentId));
+});
+
+router.get('/enrollment', async (req, res) => {
+  const studentId = await ownStudentId(req.user.user_id);
+  if (!studentId) return res.status(404).json({ error: 'no student record linked to this account' });
+  const { rows: classRows } = await pool.query(
+    `SELECT c.grade_level, c.section FROM students s JOIN classes c ON c.class_id = s.class_id WHERE s.student_id = $1`,
+    [studentId]
+  );
+  const { rows: enrollmentRows } = await pool.query(
+    'SELECT status, verified_at, assessed_at, printed_at, certificate_issued_at FROM enrollments WHERE student_id = $1 AND school_year = $2',
+    [studentId, NEXT_SCHOOL_YEAR]
+  );
+  res.json({
+    current_grade: classRows[0]?.grade_level,
+    current_section: classRows[0]?.section,
+    subjects: SUBJECTS,
+    next_school_year: NEXT_SCHOOL_YEAR,
+    promotion: enrollmentRows[0] || null,
+  });
+});
+
+router.get('/certificate', async (req, res) => {
+  const studentId = await ownStudentId(req.user.user_id);
+  if (!studentId) return res.status(404).json({ error: 'no student record linked to this account' });
+  const { rows } = await pool.query(
+    'SELECT * FROM enrollments WHERE student_id = $1 AND school_year = $2 AND status = $3',
+    [studentId, NEXT_SCHOOL_YEAR, 'CERTIFICATE_ISSUED']
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'no issued certificate yet' });
+  const { rows: studentRows } = await pool.query('SELECT name, lrn, school_id FROM students WHERE student_id = $1', [studentId]);
+  const { rows: schoolRows } = await pool.query('SELECT name, principal, deped_id FROM schools WHERE school_id = $1', [studentRows[0].school_id]);
+  res.json({
+    student_name: studentRows[0].name,
+    lrn: studentRows[0].lrn,
+    school_year: rows[0].school_year,
+    grade_level: rows[0].grade_level,
+    section: 'A',
+    subjects: SUBJECTS,
+    issued_at: rows[0].certificate_issued_at,
+    school: schoolRows[0],
+  });
 });
 
 module.exports = router;

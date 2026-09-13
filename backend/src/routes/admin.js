@@ -40,7 +40,9 @@ router.delete('/students/:studentId', async (req, res) => {
     await client.query('BEGIN');
     await client.query('DELETE FROM attendance WHERE student_id = $1', [studentId]);
     await client.query('DELETE FROM grades WHERE student_id = $1', [studentId]);
-    await client.query('DELETE FROM student_guardians WHERE student_id = $1', [studentId]);
+    await client.query('DELETE FROM fee_items WHERE student_id = $1', [studentId]);
+    await client.query('DELETE FROM payments WHERE student_id = $1', [studentId]);
+    await client.query('DELETE FROM enrollments WHERE student_id = $1', [studentId]);
     await client.query('DELETE FROM students WHERE student_id = $1', [studentId]);
     if (studentUserId) {
       await client.query('DELETE FROM audit_logs WHERE user_id = $1', [studentUserId]);

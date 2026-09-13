@@ -2,10 +2,12 @@ require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
 const { Client } = require('pg');
 const { encrypt } = require('../src/lib/crypto');
+const { SUBJECTS, feeTemplateForGrade } = require('../src/lib/curriculum');
 
 const SCHOOL_ID = 'STM001';
-const SUBJECTS = ['Filipino', 'English', 'Math', 'Science', 'Values Education'];
+const SCHOOL_YEAR = '2025-2026';
 const GRADING_PERIOD = 'First Grading';
+const PAYMENT_METHODS = ['CASH', 'GCASH', 'BANK_TRANSFER'];
 
 const TEACHERS = [
   { n: 1, name: 'Ms. Ana Gonzales', grade: 1 },
@@ -49,7 +51,7 @@ async function main() {
   await client.connect();
 
   await client.query(
-    'TRUNCATE TABLE audit_logs, backups, grades, attendance, student_guardians, guardians, students, classes, teachers, users, schools RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teachers, users, schools RESTART IDENTITY CASCADE'
   );
 
   await client.query(
@@ -87,6 +89,8 @@ async function main() {
   const studentRows = [];
   const attendanceRows = [];
   const gradeRows = [];
+  const feeItemRows = [];
+  const paymentRows = [];
   const schoolDays = [2, 3, 4, 5, 6, 9, 10, 11, 13, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27]; // June 2025, weekdays, excl. Jun 12 holiday
 
   const studentUserRows = [];
@@ -131,6 +135,26 @@ async function main() {
         ]);
       }
 
+      const template = feeTemplateForGrade(grade);
+      let totalAssessed = 0;
+      template.forEach((item, idx) => {
+        feeItemRows.push([`FEE-${studentId}-${idx}`, studentId, SCHOOL_YEAR, item.fee_type, item.amount, null]);
+        totalAssessed += item.amount;
+      });
+
+      const paymentRoll = Math.random();
+      if (paymentRoll >= 0.34) { // ~2/3 have paid something; the rest are left pending
+        const isFullyPaid = paymentRoll >= 0.67;
+        const amount = isFullyPaid ? totalAssessed : Math.round(totalAssessed * (0.2 + Math.random() * 0.5));
+        const method = PAYMENT_METHODS[randInt(0, PAYMENT_METHODS.length - 1)];
+        const referenceNo = method === 'CASH' ? null : `REF-${randInt(100000, 999999)}`;
+        const paymentDate = `2025-06-${pad(randInt(2, 27), 2)}`;
+        paymentRows.push([
+          `PAY-${studentId}-1`, studentId, SCHOOL_YEAR, amount, paymentDate, method, referenceNo,
+          'USR-REG-001', isFullyPaid ? 'Full payment' : 'Partial payment',
+        ]);
+      }
+
       studentSeq++;
     }
   }
@@ -138,26 +162,8 @@ async function main() {
   await bulkInsert(client, 'students', ['student_id', 'lrn', 'school_id', 'class_id', 'user_id', 'name', 'date_of_birth', 'gender', 'status'], studentRows);
   await bulkInsert(client, 'attendance', ['attendance_id', 'class_id', 'student_id', 'date', 'status', 'time_in', 'notes', 'recorded_by'], attendanceRows);
   await bulkInsert(client, 'grades', ['grade_id', 'class_id', 'student_id', 'subject', 'grading_period', 'first_period_exam', 'second_period_exam', 'third_period_exam', 'formative_score', 'final_grade', 'recorded_by'], gradeRows);
-
-  // Guardians: one guardian account per pair of students (siblings), matching MOCK_SCHOOL_DATA.md's ~1-per-2-3-students pattern.
-  const guardianUserRows = [];
-  const guardianRows = [];
-  const linkRows = [];
-  let guardianSeq = 1;
-  for (let i = 0; i < studentRows.length; i += 2) {
-    const userId = `USR-PAR-${pad(guardianSeq, 4)}`;
-    const guardianId = `GRD-PAR-${pad(guardianSeq, 4)}`;
-    const hash = await bcrypt.hash(`Parent@${guardianSeq}`, 10);
-    const childSurname = studentRows[i][5].split(' ').pop();
-    guardianUserRows.push([userId, SCHOOL_ID, `parent.${guardianSeq}@stmichaels.ph`, hash, 'PARENT', `Guardian of ${childSurname} family`]);
-    guardianRows.push([guardianId, userId, encrypt(`0917${pad(randInt(0, 9999999), 7)}`)]);
-    linkRows.push([studentRows[i][0], guardianId]);
-    if (studentRows[i + 1]) linkRows.push([studentRows[i + 1][0], guardianId]);
-    guardianSeq++;
-  }
-  await bulkInsert(client, 'users', ['user_id', 'school_id', 'email', 'password_hash', 'role', 'name'], guardianUserRows);
-  await bulkInsert(client, 'guardians', ['guardian_id', 'user_id', 'phone'], guardianRows);
-  await bulkInsert(client, 'student_guardians', ['student_id', 'guardian_id'], linkRows);
+  await bulkInsert(client, 'fee_items', ['fee_item_id', 'student_id', 'school_year', 'fee_type', 'amount', 'description'], feeItemRows);
+  await bulkInsert(client, 'payments', ['payment_id', 'student_id', 'school_year', 'amount', 'payment_date', 'method', 'reference_no', 'recorded_by', 'notes'], paymentRows);
 
   const counts = await client.query(`
     SELECT
@@ -166,8 +172,9 @@ async function main() {
       (SELECT COUNT(*) FROM classes) AS classes,
       (SELECT COUNT(*) FROM attendance) AS attendance,
       (SELECT COUNT(*) FROM grades) AS grades,
-      (SELECT COUNT(*) FROM guardians) AS guardians,
-      (SELECT COUNT(*) FROM users) AS users
+      (SELECT COUNT(*) FROM users) AS users,
+      (SELECT COUNT(*) FROM fee_items) AS fee_items,
+      (SELECT COUNT(*) FROM payments) AS payments
   `);
   console.log(counts.rows[0]);
 

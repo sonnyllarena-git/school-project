@@ -1,12 +1,16 @@
 -- DepEd School Portal — PostgreSQL Schema
--- Tables: schools, users, students, teachers, classes, guardians,
---         student_guardians, attendance, grades, audit_logs, backups
+-- Tables: schools, users, students, teachers, classes, attendance, grades,
+--         fee_items, payments, enrollments, audit_logs, backups
+--
+-- No Parent role/tables: the student login is the shared family login
+-- (deliberate — see LESSONS.md).
 --
 -- Re-runnable: drops and recreates everything. Fine for this bootstrap/demo
 -- phase (seed.js always repopulates from scratch); revisit before real data
 -- exists — this would then need real migrations instead of DROP + CREATE.
-DROP TABLE IF EXISTS backups, audit_logs, grades, attendance, student_guardians,
-  guardians, students, classes, teachers, users, schools CASCADE;
+DROP TABLE IF EXISTS backups, audit_logs, enrollments, payments, fee_items, grades,
+  attendance, students, classes, teachers, users, schools,
+  student_guardians, guardians CASCADE; -- one-time cleanup of retired Parent-role tables
 
 CREATE TABLE schools (
   school_id     TEXT PRIMARY KEY,
@@ -21,15 +25,15 @@ CREATE TABLE schools (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Admins, registrars, teachers, students, and guardians all authenticate
--- through this table. Role-specific fields live in `teachers`/`students`/
--- `guardians`, joined 1:1 on user_id.
+-- Admins, registrars, teachers, and students all authenticate through this
+-- table. Role-specific fields live in `teachers`/`students`, joined 1:1 on
+-- user_id. No PARENT role — the student login is the shared family login.
 CREATE TABLE users (
   user_id       TEXT PRIMARY KEY,
   school_id     TEXT NOT NULL REFERENCES schools(school_id),
   email         TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'TEACHER', 'PARENT', 'STUDENT')),
+  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'TEACHER', 'STUDENT')),
   name          TEXT NOT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -68,20 +72,6 @@ CREATE TABLE students (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Parent/guardian portal accounts (role='PARENT' in `users`), linked to
--- one or more students via `student_guardians` (siblings share a guardian).
-CREATE TABLE guardians (
-  guardian_id   TEXT PRIMARY KEY,
-  user_id       TEXT NOT NULL UNIQUE REFERENCES users(user_id),
-  phone         TEXT
-);
-
-CREATE TABLE student_guardians (
-  student_id    TEXT NOT NULL REFERENCES students(student_id),
-  guardian_id   TEXT NOT NULL REFERENCES guardians(guardian_id),
-  PRIMARY KEY (student_id, guardian_id)
-);
-
 CREATE TABLE attendance (
   attendance_id TEXT PRIMARY KEY,
   class_id      TEXT NOT NULL REFERENCES classes(class_id),
@@ -111,6 +101,52 @@ CREATE TABLE grades (
   recorded_by         TEXT NOT NULL REFERENCES users(user_id),
   recorded_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (class_id, student_id, subject, grading_period)
+);
+
+-- Statement of Account: itemized charges per student per school year.
+-- Lump sum per year (not per grading period) — see LESSONS.md for why.
+CREATE TABLE fee_items (
+  fee_item_id   TEXT PRIMARY KEY,
+  student_id    TEXT NOT NULL REFERENCES students(student_id),
+  school_year   TEXT NOT NULL,
+  fee_type      TEXT NOT NULL,
+  amount        NUMERIC(10,2) NOT NULL,
+  description   TEXT
+);
+
+-- Manual payment ledger (no payment gateway — admin/registrar records what
+-- was actually received). Enrollment status is always computed from
+-- SUM(payments.amount) vs SUM(fee_items.amount), never stored/overridden.
+CREATE TABLE payments (
+  payment_id    TEXT PRIMARY KEY,
+  student_id    TEXT NOT NULL REFERENCES students(student_id),
+  school_year   TEXT NOT NULL,
+  amount        NUMERIC(10,2) NOT NULL,
+  payment_date  DATE NOT NULL,
+  method        TEXT NOT NULL CHECK (method IN ('CASH', 'GCASH', 'BANK_TRANSFER')),
+  reference_no  TEXT,
+  recorded_by   TEXT NOT NULL REFERENCES users(user_id),
+  notes         TEXT,
+  recorded_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Per-student, per-school-year re-enrollment pipeline (promotion to the next
+-- grade level). Parent approval is deliberately NOT a tracked stage — it
+-- happens offline, on the printed copy, between PRINTED and the payment
+-- that's recorded in `payments` (see LESSONS.md). CERTIFICATE_ISSUED is the
+-- moment a student's `class_id` actually moves to the new grade/section.
+CREATE TABLE enrollments (
+  enrollment_id         TEXT PRIMARY KEY,
+  student_id            TEXT NOT NULL REFERENCES students(student_id),
+  school_year           TEXT NOT NULL,
+  grade_level           INT NOT NULL,
+  status                TEXT NOT NULL CHECK (status IN ('VERIFIED', 'ASSESSED', 'PRINTED', 'CERTIFICATE_ISSUED')) DEFAULT 'VERIFIED',
+  verified_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  assessed_at            TIMESTAMPTZ,
+  printed_at             TIMESTAMPTZ,
+  certificate_issued_at  TIMESTAMPTZ,
+  recorded_by            TEXT NOT NULL REFERENCES users(user_id),
+  UNIQUE (student_id, school_year)
 );
 
 CREATE TABLE audit_logs (

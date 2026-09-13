@@ -7,7 +7,6 @@ const HOME_BY_ROLE = {
   ADMIN: '/admin',
   TEACHER: '/teacher/attendance',
   STUDENT: '/student',
-  PARENT: '/parent',
 };
 
 export default function Login() {
@@ -58,8 +57,8 @@ export default function Login() {
         <div className="demo-creds">
           Demo accounts: <code>admin@stmichaels.ph / Admin@2025</code>,{' '}
           <code>teacher.1@stmichaels.ph / Teacher@1</code>,{' '}
-          <code>student.123001@stmichaels.ph / Student@123001</code>,{' '}
-          <code>parent.1@stmichaels.ph / Parent@1</code>
+          <code>student.123001@stmichaels.ph / Student@123001</code>{' '}
+          (a parent uses this same student login — no separate Parent account)
         </div>
       </div>
       <Footer />
