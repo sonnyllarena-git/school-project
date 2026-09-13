@@ -219,3 +219,17 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     assess → print → paid in full → certificate issued → confirmed `class_id` actually changed
     (CLS001 → CLS002) → confirmed the student's own login reflects all of it
 
+- [x] **Task X: Settings Modal — Change Password, Notification Prefs, Language**
+  - `GET /me`, `PATCH /me/password` (bcrypt-verified current password required), `PATCH
+    /me/notifications` — role-agnostic (any authenticated user, not just Admin)
+  - `users.notify_email`/`notify_sms` columns — **preference storage only**, no email/SMS provider
+    wired up (see LESSONS.md)
+  - Frontend: lightweight `i18n.jsx` (EN/Tagalog) — deliberately scoped to nav/login/settings/common
+    buttons, not every page's full content (a much bigger effort) — toggle on Login page and in Settings
+  - Verify: changed a real password through the UI, confirmed old password rejected + new one logs in;
+    toggled SMS notifications, confirmed it persisted in the DB; switched language mid-session, confirmed
+    nav/login strings translate and the choice persists across login
+  - Lesson: the Settings modal panel had no `overflow-y`, so content taller than the viewport (once
+    Notifications + Change Password were added) became unreachable — only caught by actually scrolling
+    the rendered page, not by reading the JSX
+

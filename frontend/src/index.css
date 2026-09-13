@@ -193,7 +193,8 @@ tr:last-child td { border-bottom: none; }
 }
 .modal-panel {
   width: 320px; background: var(--card); border-radius: var(--radius);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.3); overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  max-height: calc(100vh - 90px); overflow-y: auto;
 }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .modal-section { padding: 16px 18px; border-bottom: 1px solid var(--border); }

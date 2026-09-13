@@ -66,4 +66,9 @@ export const api = {
   markPrinted: (token, studentId) => request(`/enrollment/${studentId}/mark-printed`, { method: 'POST', token }),
   issueCertificate: (token, studentId) => request(`/enrollment/${studentId}/issue-certificate`, { method: 'POST', token }),
   getCertificate: (token, studentId) => request(`/enrollment/${studentId}/certificate`, { token }),
+
+  getMe: token => request('/me', { token }),
+  changePassword: (token, current_password, new_password) =>
+    request('/me/password', { method: 'PATCH', token, body: { current_password, new_password } }),
+  updateNotifications: (token, prefs) => request('/me/notifications', { method: 'PATCH', token, body: prefs }),
 };

@@ -7,28 +7,29 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
+import { useLanguage } from '../lib/i18n';
 import Footer from './Footer';
 import SettingsModal from './SettingsModal';
 
 const NAV_BY_ROLE = {
   ADMIN: [
-    { to: '/admin', label: 'Dashboard', end: true, icon: Squares2X2Icon },
-    { to: '/admin/teachers', label: 'Teachers', icon: UserGroupIcon },
-    { to: '/admin/students', label: 'Students', icon: AcademicCapIcon },
-    { to: '/admin/import', label: 'Import Roster', icon: ArrowUpTrayIcon },
-    { to: '/admin/export', label: 'Data Export', icon: ArrowDownTrayIcon },
-    { to: '/admin/accounts', label: 'Accounts', icon: BanknotesIcon },
-    { to: '/admin/enrollment', label: 'Enrollment', icon: ArrowUpCircleIcon },
+    { to: '/admin', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
+    { to: '/admin/teachers', labelKey: 'teachers', icon: UserGroupIcon },
+    { to: '/admin/students', labelKey: 'students', icon: AcademicCapIcon },
+    { to: '/admin/import', labelKey: 'import_roster', icon: ArrowUpTrayIcon },
+    { to: '/admin/export', labelKey: 'data_export', icon: ArrowDownTrayIcon },
+    { to: '/admin/accounts', labelKey: 'accounts', icon: BanknotesIcon },
+    { to: '/admin/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
   ],
   TEACHER: [
-    { to: '/teacher/attendance', label: 'Attendance', icon: ClipboardDocumentCheckIcon },
-    { to: '/teacher/grades', label: 'Grades', icon: PencilSquareIcon },
+    { to: '/teacher/attendance', labelKey: 'attendance', icon: ClipboardDocumentCheckIcon },
+    { to: '/teacher/grades', labelKey: 'grades', icon: PencilSquareIcon },
   ],
   STUDENT: [
-    { to: '/student', label: 'My Grades', end: true, icon: ChartBarIcon },
-    { to: '/student/attendance', label: 'My Attendance', icon: CalendarDaysIcon },
-    { to: '/student/account', label: 'My Account', icon: BanknotesIcon },
-    { to: '/student/enrollment', label: 'Enrollment', icon: ArrowUpCircleIcon },
+    { to: '/student', labelKey: 'my_grades', end: true, icon: ChartBarIcon },
+    { to: '/student/attendance', labelKey: 'my_attendance', icon: CalendarDaysIcon },
+    { to: '/student/account', labelKey: 'my_account', icon: BanknotesIcon },
+    { to: '/student/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
   ],
 };
 
@@ -38,6 +39,7 @@ export default function Layout({ title, children }) {
   const role = session?.user?.role;
   const items = NAV_BY_ROLE[role] || [];
   const { isOnline, pending, syncing, syncNow } = useOfflineSync();
+  const { t } = useLanguage();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   function handleLogout() {
@@ -56,7 +58,7 @@ export default function Layout({ title, children }) {
           {items.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end}>
               <item.icon className="nav-icon" />
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
@@ -68,7 +70,7 @@ export default function Layout({ title, children }) {
             <div className="who">
               <strong>{session?.user?.name}</strong> · {role}
             </div>
-            <button className="ghost icon-btn" onClick={() => setSettingsOpen(true)} title="Settings">
+            <button className="ghost icon-btn" onClick={() => setSettingsOpen(true)} title={t('settings')}>
               <Cog6ToothIcon width={22} />
             </button>
           </div>
@@ -87,7 +89,7 @@ export default function Layout({ title, children }) {
         <Footer />
       </div>
       {settingsOpen && (
-        <SettingsModal user={session?.user} onClose={() => setSettingsOpen(false)} onLogout={handleLogout} />
+        <SettingsModal user={session?.user} token={session?.token} onClose={() => setSettingsOpen(false)} onLogout={handleLogout} />
       )}
     </div>
   );

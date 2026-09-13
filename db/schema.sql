@@ -35,6 +35,10 @@ CREATE TABLE users (
   password_hash TEXT NOT NULL,
   role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'TEACHER', 'STUDENT')),
   name          TEXT NOT NULL,
+  -- Stored preference only — no email/SMS sending is wired up yet (no
+  -- provider integration). See LESSONS.md.
+  notify_email  BOOLEAN NOT NULL DEFAULT true,
+  notify_sms    BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

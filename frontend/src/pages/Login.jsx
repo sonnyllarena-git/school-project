@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+import { useLanguage } from '../lib/i18n';
 import Footer from '../components/Footer';
 
 const HOME_BY_ROLE = {
@@ -11,6 +12,7 @@ const HOME_BY_ROLE = {
 
 export default function Login() {
   const { login } = useAuth();
+  const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,25 +36,29 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginBottom: 8 }}>
+          <button className={lang === 'en' ? 'secondary' : 'ghost'} style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setLang('en')}>EN</button>
+          <button className={lang === 'tl' ? 'secondary' : 'ghost'} style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setLang('tl')}>TL</button>
+        </div>
         <h1>St. Michael's Academy</h1>
-        <p className="subtitle">School Portal Login</p>
+        <p className="subtitle">{t('school_portal_login')}</p>
         {error && <div className="error-banner">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t('email')}</label>
           <input
             id="email" type="email" value={email} required
             onChange={e => setEmail(e.target.value)}
             placeholder="you@stmichaels.ph"
             style={{ width: '100%', marginBottom: 14 }}
           />
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">{t('password')}</label>
           <input
             id="password" type="password" value={password} required
             onChange={e => setPassword(e.target.value)}
             placeholder="••••••••"
             style={{ width: '100%' }}
           />
-          <button type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Log In'}</button>
+          <button type="submit" disabled={loading}>{loading ? t('signing_in') : t('log_in')}</button>
         </form>
         <div className="demo-creds">
           Demo accounts: <code>admin@stmichaels.ph / Admin@2025</code>,{' '}
