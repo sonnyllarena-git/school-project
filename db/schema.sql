@@ -1,6 +1,12 @@
 -- DepEd School Portal — PostgreSQL Schema
 -- Tables: schools, users, students, teachers, classes, guardians,
 --         student_guardians, attendance, grades, audit_logs, backups
+--
+-- Re-runnable: drops and recreates everything. Fine for this bootstrap/demo
+-- phase (seed.js always repopulates from scratch); revisit before real data
+-- exists — this would then need real migrations instead of DROP + CREATE.
+DROP TABLE IF EXISTS backups, audit_logs, grades, attendance, student_guardians,
+  guardians, students, classes, teachers, users, schools CASCADE;
 
 CREATE TABLE schools (
   school_id     TEXT PRIMARY KEY,
@@ -15,14 +21,15 @@ CREATE TABLE schools (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Admins, registrars, and teachers all authenticate through this table.
--- Teacher-specific fields live in `teachers`, joined 1:1 on user_id.
+-- Admins, registrars, teachers, students, and guardians all authenticate
+-- through this table. Role-specific fields live in `teachers`/`students`/
+-- `guardians`, joined 1:1 on user_id.
 CREATE TABLE users (
   user_id       TEXT PRIMARY KEY,
   school_id     TEXT NOT NULL REFERENCES schools(school_id),
   email         TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'TEACHER', 'PARENT')),
+  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'TEACHER', 'PARENT', 'STUDENT')),
   name          TEXT NOT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -43,11 +50,14 @@ CREATE TABLE classes (
   school_year   TEXT NOT NULL
 );
 
+-- user_id is nullable: a school may not issue portal logins to its
+-- youngest students, but one is required to use the Student view (Task K).
 CREATE TABLE students (
   student_id    TEXT PRIMARY KEY,
   lrn           TEXT NOT NULL UNIQUE,
   school_id     TEXT NOT NULL REFERENCES schools(school_id),
   class_id      TEXT REFERENCES classes(class_id),
+  user_id       TEXT UNIQUE REFERENCES users(user_id),
   name          TEXT NOT NULL,
   date_of_birth DATE,
   gender        TEXT,

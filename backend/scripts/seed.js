@@ -88,6 +88,7 @@ async function main() {
   const gradeRows = [];
   const schoolDays = [2, 3, 4, 5, 6, 9, 10, 11, 13, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27]; // June 2025, weekdays, excl. Jun 12 holiday
 
+  const studentUserRows = [];
   let studentSeq = 1;
   for (let grade = 1; grade <= 6; grade++) {
     const classId = `CLS${pad(grade, 3)}`;
@@ -95,13 +96,16 @@ async function main() {
     for (let i = 0; i < 25; i++) {
       const lrn = `123${pad(studentSeq, 3)}`;
       const studentId = `STU-${pad(studentSeq, 6)}`;
+      const studentUserId = `USR-STU-${pad(studentSeq, 6)}`;
       const isMale = studentSeq % 2 === 0;
       const first = isMale ? MALE_FIRST[studentSeq % MALE_FIRST.length] : FEMALE_FIRST[studentSeq % FEMALE_FIRST.length];
       const last = SURNAMES[(studentSeq * 7) % SURNAMES.length];
       const birthYear = 2025 - (5 + grade);
       const dob = `${birthYear}-${pad(randInt(1, 12), 2)}-${pad(randInt(1, 28), 2)}`;
 
-      studentRows.push([studentId, lrn, SCHOOL_ID, classId, `${first} ${last}`, dob, isMale ? 'M' : 'F', 'Active']);
+      const studentHash = await bcrypt.hash(`Student@${lrn}`, 10);
+      studentUserRows.push([studentUserId, SCHOOL_ID, `student.${lrn}@stmichaels.ph`, studentHash, 'STUDENT', `${first} ${last}`]);
+      studentRows.push([studentId, lrn, SCHOOL_ID, classId, studentUserId, `${first} ${last}`, dob, isMale ? 'M' : 'F', 'Active']);
 
       for (const day of schoolDays) {
         const roll = Math.random();
@@ -129,7 +133,8 @@ async function main() {
       studentSeq++;
     }
   }
-  await bulkInsert(client, 'students', ['student_id', 'lrn', 'school_id', 'class_id', 'name', 'date_of_birth', 'gender', 'status'], studentRows);
+  await bulkInsert(client, 'users', ['user_id', 'school_id', 'email', 'password_hash', 'role', 'name'], studentUserRows);
+  await bulkInsert(client, 'students', ['student_id', 'lrn', 'school_id', 'class_id', 'user_id', 'name', 'date_of_birth', 'gender', 'status'], studentRows);
   await bulkInsert(client, 'attendance', ['attendance_id', 'class_id', 'student_id', 'date', 'status', 'time_in', 'notes', 'recorded_by'], attendanceRows);
   await bulkInsert(client, 'grades', ['grade_id', 'class_id', 'student_id', 'subject', 'grading_period', 'first_period_exam', 'second_period_exam', 'third_period_exam', 'formative_score', 'final_grade', 'recorded_by'], gradeRows);
 

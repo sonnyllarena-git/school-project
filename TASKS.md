@@ -46,3 +46,58 @@ When all Phase 0 tasks are ✅, flip `BOOTSTRAP: INCOMPLETE` → `BOOTSTRAP: COM
 
 Then Phase 1 (Features) can begin.
 
+---
+
+## Phase 1: Core Features (Backend API first, matching CLAUDE.md §3 pass conditions)
+
+- [x] **Task F: Auth Middleware & Role Guards**
+  - JWT verification middleware (reads `Authorization: Bearer <token>`, attaches `req.user`)
+  - Role-guard helper (e.g. `requireRole('ADMIN')`) for protected routes
+  - Verify: request without token → 401; token with wrong role on a role-guarded route → 403
+  - Pass condition: valid token + correct role reaches the route handler
+
+- [x] **Task G: Admin — School Info & Teacher Accounts**
+  - `GET/PATCH /admin/school` (school info)
+  - `GET/POST /admin/teachers` (list, create teacher account + user login)
+  - Verify: admin token can list/create; teacher/parent tokens get 403
+  - Pass condition: matches CLAUDE.md §3 "Admin can create school, add teachers"
+
+- [x] **Task H: Admin — Student Roster CSV Import**
+  - `POST /admin/students/import` (CSV body → parsed, validated, inserted/upserted students)
+  - Verify: sample CSV import creates expected row count, re-import doesn't duplicate
+  - Pass condition: matches CLAUDE.md §3 "Admin can ... import student CSV"
+
+- [x] **Task I: Teacher — Daily Attendance Marking**
+  - `POST /teacher/classes/:classId/attendance` (date + per-student status), `GET` same
+  - Verify: teacher token marks attendance for their own class for 1 day, no errors; other teachers' classes rejected (403/404)
+  - Pass condition: matches CLAUDE.md §3 "Teacher can mark attendance for 1 class for 1 day without errors"
+
+- [x] **Task J: Teacher — Grade Entry**
+  - `POST /teacher/classes/:classId/grades` (per-student, per-subject, grading period)
+  - Verify: entry succeeds; same class/subject/period is update-not-duplicate (matches schema's UNIQUE constraint)
+  - Pass condition: grade is then visible via Task K's student endpoint
+
+- [x] **Task K: Student View — My Grades & Attendance (read-only)**
+  - `GET /me/grades`, `GET /me/attendance` (scoped to the logged-in student's own `student_id`)
+  - Verify: student token sees own records; cannot query another student's ID
+  - Pass condition: matches CLAUDE.md §3 "Grades entered by teacher appear in student view"
+
+- [x] **Task L: Parent View — Child's Performance (read-only)**
+  - `GET /me/children`, `GET /me/children/:studentId/grades`, `GET /me/children/:studentId/attendance`
+  - Verify: parent token sees only linked children's data; requesting an unlinked student_id → 403/404
+  - Pass condition: matches CLAUDE.md §3 "Parent can view child's grades (correct filtering, no access to other students)"
+
+- [x] **Task M: Admin — School Reports**
+  - `GET /admin/reports/attendance` (% present per class/school), `GET /admin/reports/grades` (distribution)
+  - Verify: numbers match manual `SELECT` aggregates against seeded data
+  - Pass condition: matches MVP feature 6
+
+- [x] **Task N: Admin — Data Export**
+  - `GET /admin/export` (CSV of students/teachers/attendance/grades, full or filtered)
+  - Verify: exported CSV row counts match DB counts
+  - Pass condition: matches MVP feature 7 / red-flag §1.3 (vendor lock-in prevention)
+
+**Note:** these tasks build the backend API only. Frontend (React) screens per role are a
+separate, larger body of work — flagged for a scoping conversation once the API is solid,
+rather than assumed in scope here.
+
