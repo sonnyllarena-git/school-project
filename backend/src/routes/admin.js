@@ -370,6 +370,109 @@ router.post('/teachers', async (req, res) => {
   res.status(201).json({ teacher_id: teacherId, user_id: userId, name, email });
 });
 
+// Every login-capable account in the school, for the User Management tab —
+// a student's user_id is nullable (CSV-imported students have no login
+// until one is created here), hence the LEFT JOIN.
+router.get('/users', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT u.user_id, u.name, u.email, u.role, s.student_id, s.lrn
+     FROM users u
+     LEFT JOIN students s ON s.user_id = u.user_id
+     WHERE u.school_id = $1
+     ORDER BY u.role, u.name`,
+    [req.user.school_id]
+  );
+  res.json(rows);
+});
+
+// Every class this school has (fixed grade 1-6 x section A/B structure) —
+// just enough to populate the Add Student class picker.
+router.get('/classes', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT c.class_id, c.grade_level, c.section, c.room, u.name AS adviser_name
+     FROM classes c
+     LEFT JOIN teachers t ON t.teacher_id = c.teacher_id
+     LEFT JOIN users u ON u.user_id = t.user_id
+     WHERE c.school_id = $1
+     ORDER BY c.grade_level, c.section`,
+    [req.user.school_id]
+  );
+  res.json(rows);
+});
+
+// Admin-created student with an actual portal login — CSV import (below)
+// only ever creates the students row with user_id left NULL, so this is
+// the only path to a student who can actually log in without going
+// through the seed script.
+router.post('/students', async (req, res) => {
+  const { name, lrn, date_of_birth, gender, class_id, email, password } = req.body;
+  if (!name?.trim() || !lrn?.trim() || !date_of_birth || !gender || !class_id || !email?.trim() || !password) {
+    return res.status(400).json({ error: 'name, lrn, date_of_birth, gender, class_id, email, and password are required' });
+  }
+  if (!['M', 'F'].includes(gender)) {
+    return res.status(400).json({ error: 'gender must be M or F' });
+  }
+  const { rows: classRows } = await pool.query(
+    'SELECT class_id FROM classes WHERE class_id = $1 AND school_id = $2',
+    [class_id, req.user.school_id]
+  );
+  if (!classRows[0]) return res.status(400).json({ error: 'unknown class_id' });
+
+  const userId = `USR-STU-${crypto.randomUUID().slice(0, 8)}`;
+  const studentId = `STU-${crypto.randomUUID().slice(0, 8)}`;
+  const hash = await bcrypt.hash(password, 10);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO users (user_id, school_id, email, password_hash, role, name)
+       VALUES ($1, $2, $3, $4, 'STUDENT', $5)`,
+      [userId, req.user.school_id, email.trim(), hash, name.trim()]
+    );
+    await client.query(
+      `INSERT INTO students (student_id, lrn, school_id, class_id, user_id, name, date_of_birth, gender, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Active')`,
+      [studentId, lrn.trim(), req.user.school_id, class_id, userId, name.trim(), encrypt(date_of_birth), gender]
+    );
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'a user with that email or a student with that LRN already exists' });
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.status(201).json({ student_id: studentId, user_id: userId, name, lrn, email });
+});
+
+// Admin override — sets a user's password directly, no current_password
+// needed (unlike the self-service PATCH /me/password). Logged same as
+// right-to-deletion (CLAUDE.md §1.1: audit logs for all data access).
+router.patch('/users/:userId/password', async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'password must be at least 6 characters' });
+  }
+  const { rows } = await pool.query(
+    'SELECT user_id FROM users WHERE user_id = $1 AND school_id = $2',
+    [req.params.userId, req.user.school_id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'user not found' });
+
+  const hash = await bcrypt.hash(password, 10);
+  await pool.query('UPDATE users SET password_hash = $1 WHERE user_id = $2', [hash, req.params.userId]);
+  await pool.query(
+    `INSERT INTO audit_logs (audit_id, school_id, user_id, action, table_affected, record_count, status)
+     VALUES ($1, $2, $3, 'PASSWORD_RESET', 'users', 1, 'SUCCESS')`,
+    [crypto.randomUUID(), req.user.school_id, req.user.user_id]
+  );
+  res.json({ ok: true });
+});
+
 // CSV columns: lrn,name,date_of_birth,gender,class_id
 // Upserts by lrn (the natural student identifier) so re-import is idempotent.
 router.post('/students/import', async (req, res) => {

@@ -26,6 +26,7 @@ import StatementOfAccount from './pages/StatementOfAccount';
 import ReportCard from './pages/ReportCard';
 import AdminAuditLog from './pages/admin/AdminAuditLog';
 import AdminAccounting from './pages/admin/AdminAccounting';
+import AdminUserManagement from './pages/admin/AdminUserManagement';
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/admin/export" element={<ProtectedRoute role="ADMIN"><AdminExport /></ProtectedRoute>} />
           <Route path="/admin/accounts" element={<ProtectedRoute role="ADMIN"><AdminAccounts /></ProtectedRoute>} />
           <Route path="/admin/accounting" element={<ProtectedRoute role="ADMIN"><AdminAccounting /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute role="ADMIN"><AdminUserManagement /></ProtectedRoute>} />
           <Route path="/admin/enrollment" element={<ProtectedRoute role="ADMIN"><AdminEnrollment /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/certificate" element={<ProtectedRoute role="ADMIN"><Certificate source="admin" /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/soa" element={<ProtectedRoute role="ADMIN"><StatementOfAccount source="admin" /></ProtectedRoute>} />

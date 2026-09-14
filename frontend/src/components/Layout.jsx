@@ -4,7 +4,7 @@ import {
   Squares2X2Icon, UserGroupIcon, AcademicCapIcon, ArrowUpTrayIcon, ArrowDownTrayIcon,
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
   Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon, ClockIcon,
-  DocumentMagnifyingGlassIcon, CalculatorIcon,
+  DocumentMagnifyingGlassIcon, CalculatorIcon, UsersIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
@@ -15,6 +15,7 @@ import SettingsModal from './SettingsModal';
 const NAV_BY_ROLE = {
   ADMIN: [
     { to: '/admin', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
+    { to: '/admin/users', labelKey: 'user_management', icon: UsersIcon },
     { to: '/admin/teachers', labelKey: 'teachers', icon: UserGroupIcon },
     { to: '/admin/subjects', labelKey: 'subjects', icon: BookOpenIcon },
     { to: '/admin/schedules', labelKey: 'schedules', icon: ClockIcon },

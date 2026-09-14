@@ -34,6 +34,11 @@ export const api = {
   updateSchool: (token, fields) => request('/admin/school', { method: 'PATCH', token, body: fields }),
   listTeachers: token => request('/admin/teachers', { token }),
   createTeacher: (token, data) => request('/admin/teachers', { method: 'POST', token, body: data }),
+  listUsers: token => request('/admin/users', { token }),
+  resetUserPassword: (token, userId, password) =>
+    request(`/admin/users/${userId}/password`, { method: 'PATCH', token, body: { password } }),
+  listClasses: token => request('/admin/classes', { token }),
+  createStudent: (token, data) => request('/admin/students', { method: 'POST', token, body: data }),
   getSubjects: token => request('/admin/subjects', { token }),
   createSubject: (token, data) => request('/admin/subjects', { method: 'POST', token, body: data }),
   updateSubjectTeachers: (token, subjectId, teacherIds) =>
