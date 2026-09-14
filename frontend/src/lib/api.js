@@ -90,11 +90,26 @@ export const api = {
 
   getEligibility: (token, studentId) => request(`/enrollment/${studentId}/eligibility`, { token }),
   getEnrollment: (token, studentId) => request(`/enrollment/${studentId}`, { token }),
+  getEnrollmentSummary: token => request('/enrollment/summary', { token }),
   verifyEnrollment: (token, studentId) => request(`/enrollment/${studentId}/verify`, { method: 'POST', token }),
   assessEnrollment: (token, studentId) => request(`/enrollment/${studentId}/assess`, { method: 'POST', token }),
   markPrinted: (token, studentId) => request(`/enrollment/${studentId}/mark-printed`, { method: 'POST', token }),
   issueCertificate: (token, studentId) => request(`/enrollment/${studentId}/issue-certificate`, { method: 'POST', token }),
   getCertificate: (token, studentId) => request(`/enrollment/${studentId}/certificate`, { token }),
+
+  getRequirementTypes: token => request('/requirements/types', { token }),
+  listRequirementStudents: token => request('/requirements/students', { token }),
+  getRequirementsSummary: token => request('/requirements/summary', { token }),
+  getStudentRequirements: (token, studentId) => request(`/requirements/students/${studentId}`, { token }),
+  updateRequirement: (token, studentId, requirementType, data) =>
+    request(`/requirements/students/${studentId}/${encodeURIComponent(requirementType)}`, { method: 'PATCH', token, body: data }),
+
+  getMessages: token => request('/messages', { token }),
+  sendMessage: (token, data) => request('/messages', { method: 'POST', token, body: data }),
+
+  getGoodMoral: (token, studentId) => request(`/documents/students/${studentId}/good-moral`, { token }),
+  getHonorableDismissal: (token, studentId) => request(`/documents/students/${studentId}/honorable-dismissal`, { token }),
+  getTranscript: (token, studentId) => request(`/documents/students/${studentId}/transcript`, { token }),
 
   getMe: token => request('/me', { token }),
   changePassword: (token, current_password, new_password) =>

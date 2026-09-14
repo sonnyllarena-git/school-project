@@ -591,3 +591,110 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     and the right adviser, confirmed the Back link returns to `/admin/enrollment?student=<id>`, and
     confirmed the plain current-year SOA and the Report Card page are both unaffected by the change
 
+- [x] **Task AO: Payment Rejected Outright If It Would Overpay**
+  - User-reported follow-up to Task AM's clamp: rejected instead of clamped, so an overpayment (typo,
+    wrong student) bounces back to the cashier instead of silently succeeding at ₱0 owed.
+    `POST /accounts/students/:studentId/payments` now checks `amount > balance` before inserting and
+    returns 400 with the actual balance if so
+  - Verify: curled an overpayment (400, correct message) and a valid partial/exact payment (both 201);
+    in the browser, submitted an overpayment through the actual Accounts page form and confirmed the
+    error banner rendered via the existing error-banner UI, no frontend changes needed
+
+- [x] **Task AP: "View Grades" Link on Failing-Subject Ineligibility Banner**
+  - Mirrors Task AK's "View Account" pattern but for the other ineligibility cause: added `?student=`
+    deep-link support to `AdminStudents.jsx` and a "View Grades" button on the banner when
+    `failing_subjects.length > 0`, jumping straight to that student's detail modal (which already shows
+    per-quarter grades)
+  - Verify: clicked through from a real failing-grade banner (Angela Mercado, Filipino) and confirmed the
+    modal opened showing the exact quarters/scores explaining the block
+
+- [x] **Task AQ: Teacher Grade Entry Pre-Fills Existing Scores**
+  - Real bug found while answering a user question about correcting a grade after a retake/makeup exam:
+    Grade Entry always loaded blank inputs, and saving is a full-row overwrite — so "fixing" one
+    student's final grade would have silently wiped every other student's scores for that subject/
+    period. New `GET /teacher/classes/:classId/grades?subject=&grading_period=` (teacher-owns-this-
+    class checked) + `TeacherGrades.jsx` now pre-fills the roster with whatever's already on file
+  - Verify: as a real teacher login, opened Filipino/First Grading, confirmed real scores pre-filled;
+    bumped one student's final grade and saved; confirmed via the API that only that field changed —
+    her exam scores and every other student's row were untouched
+
+- [x] **Task AR: Unique Student Names in Seed Data**
+  - `seed.js` picked first names via `studentSeq % 12` (only 12 slots) and surnames via
+    `(studentSeq * 7) % 20` — cycled and produced repeats (multiple "Angela Hernandez"s in different
+    grades). Fixed by building the full 12×20 (first, surname) cross-product per gender, shuffling once,
+    and handing out one unique pair per student (240 combos per gender, only 75 needed)
+  - Verify: reseeded, confirmed 150/150 unique names via the API and in the Students page
+
+- [x] **Task AS: Fix Stale Account Status After Promotion**
+  - User-reported: paid full tuition for the next grade, but the account still showed "Fully Paid" from
+    the *previous*, already-completed grade — because every account view defaulted to the fixed
+    `CURRENT_SCHOOL_YEAR` regardless of whether the student had already been promoted. New
+    `getActiveSchoolYear(studentId)` in `account.js`: once a certificate is issued for the next year,
+    that year becomes the student's active obligation everywhere (Accounts page, Students roster badge,
+    payment recording) instead of the fixed constant
+  - Verify: confirmed the promoted student's account now resolves to the next year/correct partial-paid
+    balance in the API, the Accounts page, and the Students roster; regression-checked that 147/150
+    non-promoted students still correctly resolve to the current year
+
+- [x] **Task AT: Accounting Tab**
+  - New school-wide financial tab (brainstormed with the user, who picked Ledger + Summary + Outstanding
+    + Fee Type Breakdown/CSV Export): `GET /accounts/ledger` (every payment, filterable), `GET
+    /accounts/summary` (assessed/paid/outstanding, by method, by fee type), reusing the existing
+    per-student list for Outstanding Balances. Added `payments`/`fee_items` to the CSV export catalog
+  - Verify: curled both new endpoints (numbers cross-checked), confirmed CSV downloads, exercised the
+    live page (search filter, school-year filter updating summary+ledger together, "View Account" nav)
+
+- [x] **Task AU: User Management Tab**
+  - New `/admin/users` tab consolidating account creation: Add Teacher (moved out of the Teachers tab,
+    now list-only) and a new Add Student form — the first admin-reachable way to create a student with
+    an actual portal login (CSV import only ever left `user_id` NULL). Admin can also reset any user's
+    password directly (`PATCH /admin/users/:userId/password`, no `current_password` needed, logged as a
+    `PASSWORD_RESET` audit entry)
+  - Verify: created a test student, logged in with the generated credentials, reset the password (old
+    rejected, new worked), confirmed the audit log entry; confirmed Teachers tab no longer shows Add
+    Teacher
+
+- [x] **Task AV: Cashier/Registrar Roles, Guardian Info, Messaging, Requirements, Documents Tab**
+  - The big one — five things requested together after a "what else can we add" brainstorm:
+    1. **New CASHIER role** (`cashier@stmichaels.ph` / `Cashier@2025`) alongside the existing REGISTRAR,
+       each with their own dashboard and nav. Permission split (confirmed with the user): Cashier can
+       view Accounts/Accounting and record payments, but not touch Enrollment/Requirements/Documents.
+       Registrar owns Enrollment/Requirements/Documents and can still view balances/edit fee items
+       (assessment corrections), but recording a payment is Cashier-exclusive now — `accounts.js`'s
+       single blanket role gate was split into per-route `VIEW_ROLES`/`PAYMENT_ROLES`/`FEE_ITEM_ROLES`.
+       `enrollment.js` opened up to REGISTRAR (was ADMIN-only, despite Enrollment conceptually being a
+       registrar function all along). New dashboards: `RegistrarDashboard` (promotion-pipeline stage
+       counts via new `GET /enrollment/summary`, requirements completion), `CashierDashboard` (reuses
+       the Accounting summary). Fixed a real bug found while building this: `Login.jsx`'s `HOME_BY_ROLE`
+       had no entry for REGISTRAR, so a registrar logging in was bounced straight back to the login page
+    2. **Guardian/emergency contact info**: new `students` columns (guardian name/relationship/phone/
+       email, emergency contact name/phone), populated for all 150 mock students in `seed.js`, shown in
+       the Student Detail modal, and addable via the Add Student form
+    3. **Messaging** (the original MVP item from CLAUDE.md §2, never built) — scoped to announcements
+       only per the user's choice (no private 1:1 threads, no read/unread state): new `messages` table,
+       `GET/POST /messages`. Admin/Teacher/Registrar can compose to an audience (Everyone / a specific
+       Grade+Section / a specific student — the last restricted to Admin/Registrar in the UI since a
+       teacher has no general student directory to pick from); every role sees a shared `/messages`
+       inbox filtered to what's addressed to them
+    4. **Requirements system**, under Registrar per the request: new `student_requirements` table plus
+       a fixed `REQUIREMENT_TYPES` catalog in `curriculum.js` (Birth Certificate, Form 137, Good Moral
+       Certificate, Medical/Immunization Record, ID Photos, Parent's Valid ID). Registrar checklist UI
+       per student, status PENDING/SUBMITTED/VERIFIED, rows created lazily (no DB row until a status is
+       actually set)
+    5. **Documents tab**, Registrar-only: a hub page linking every printable document for a selected
+       student — the three existing ones (Certificate of Matriculation, SOA, Report Card) plus three
+       new ones built this round (Good Moral Certificate, Honorable Dismissal, Transcript of Records —
+       the last aggregates grades across every grade level a student has been recorded under, since
+       `grades` rows are pinned to a grade level via `class_id`, not an explicit school-year column).
+       Cashier access to this tab was explicitly deferred, not built, per the user's own scoping
+  - Verify: full role-permission matrix tested via curl (Cashier 403 on Requirements/Documents/
+    Enrollment, 200 on Accounts/payments; Registrar 403 on payments, 201 on fee-items, 200 on
+    enrollment/summary) before touching the browser at all. Then in the browser: logged in as Registrar
+    (correct nav, dashboard stats, requirements checklist status-change persisted with verified_by/
+    verified_at, Good Moral/Transcript printables rendered with real data) and as Cashier (correct nav,
+    dashboard summary + top-outstanding list, blocked from Documents, "Record Payment" shortcut into
+    Accounts worked); composed and read back a real announcement as Teacher and confirmed a Grade-1-A
+    student's inbox showed exactly the messages addressed to them (ALL + their own grade/section, not
+    other grades); created a real student through Add Student with guardian fields and confirmed they
+    persisted; deleted the test student and reseeded to a clean baseline afterward
+

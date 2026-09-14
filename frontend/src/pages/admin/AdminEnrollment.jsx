@@ -325,7 +325,10 @@ export default function AdminEnrollment() {
                 </div>
               )}
 
-              {account.balance > 0 && (
+              {/* Recording a payment is Cashier's job now, not Registrar's — the
+                  backend would 403 anyway, but showing a form that can't
+                  actually be submitted would just be confusing. */}
+              {account.balance > 0 && session.user.role !== 'REGISTRAR' && (
                 <form onSubmit={handlePay} style={{ marginBottom: account.status !== 'PENDING_PAYMENT' ? 20 : 0 }}>
                   <div className="form-row">
                     <div>
@@ -349,6 +352,11 @@ export default function AdminEnrollment() {
                   </div>
                   <button type="submit" disabled={busy}>{busy ? 'Recording…' : 'Record Payment'}</button>
                 </form>
+              )}
+              {account.balance > 0 && session.user.role === 'REGISTRAR' && (
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  Payments are recorded by the Cashier — send the parent there to settle the balance above.
+                </p>
               )}
 
               {account.status !== 'PENDING_PAYMENT' && (

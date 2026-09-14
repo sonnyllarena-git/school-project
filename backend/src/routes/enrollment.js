@@ -6,7 +6,7 @@ const { getStudentAccount, CURRENT_SCHOOL_YEAR } = require('../lib/account');
 const { SUBJECTS, PASSING_GRADE, feeTemplateForGrade, nextSchoolYear } = require('../lib/curriculum');
 
 const router = express.Router();
-router.use(requireAuth, requireRole('ADMIN'));
+router.use(requireAuth, requireRole('ADMIN', 'REGISTRAR'));
 
 const NEXT_SCHOOL_YEAR = nextSchoolYear(CURRENT_SCHOOL_YEAR);
 
@@ -37,6 +37,31 @@ async function checkEligibility(studentId) {
     failing_subjects: failingSubjects,
   };
 }
+
+// Registrar dashboard snapshot: how many students are at each promotion
+// stage for the upcoming school year. Declared before the /:studentId
+// routes below so Express doesn't match "summary" as a student_id.
+router.get('/summary', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT e.status, COUNT(*) AS count FROM enrollments e
+     JOIN students s ON s.student_id = e.student_id
+     WHERE s.school_id = $1 AND e.school_year = $2
+     GROUP BY e.status`,
+    [req.user.school_id, NEXT_SCHOOL_YEAR]
+  );
+  const byStatus = Object.fromEntries(rows.map(r => [r.status, Number(r.count)]));
+  const { rows: totalRows } = await pool.query('SELECT COUNT(*) FROM students WHERE school_id = $1', [req.user.school_id]);
+  const started = Object.values(byStatus).reduce((a, b) => a + b, 0);
+  res.json({
+    school_year: NEXT_SCHOOL_YEAR,
+    total_students: Number(totalRows[0].count),
+    not_started: Number(totalRows[0].count) - started,
+    verified: byStatus.VERIFIED || 0,
+    assessed: byStatus.ASSESSED || 0,
+    printed: byStatus.PRINTED || 0,
+    certificate_issued: byStatus.CERTIFICATE_ISSUED || 0,
+  });
+});
 
 router.get('/:studentId/eligibility', async (req, res) => {
   const student = await getStudentAndGrade(req.params.studentId, req.user.school_id);

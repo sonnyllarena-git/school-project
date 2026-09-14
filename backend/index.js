@@ -10,6 +10,9 @@ const legalRoutes = require('./src/routes/legal');
 const accountsRoutes = require('./src/routes/accounts');
 const enrollmentRoutes = require('./src/routes/enrollment');
 const meRoutes = require('./src/routes/me');
+const requirementsRoutes = require('./src/routes/requirements');
+const messagesRoutes = require('./src/routes/messages');
+const documentsRoutes = require('./src/routes/documents');
 const { checkNow } = require('./src/lib/status');
 const { runBackup } = require('./src/lib/backup');
 
@@ -32,6 +35,9 @@ app.use('/legal', legalRoutes);
 app.use('/accounts', accountsRoutes);
 app.use('/enrollment', enrollmentRoutes);
 app.use('/me', meRoutes);
+app.use('/requirements', requirementsRoutes);
+app.use('/messages', messagesRoutes);
+app.use('/documents', documentsRoutes);
 
 const HEALTH_CHECK_INTERVAL_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;

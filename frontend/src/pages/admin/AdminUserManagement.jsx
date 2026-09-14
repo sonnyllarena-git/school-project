@@ -3,7 +3,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
 
-const ROLE_LABEL = { ADMIN: 'Admin', REGISTRAR: 'Registrar', TEACHER: 'Teacher', STUDENT: 'Student' };
+const ROLE_LABEL = { ADMIN: 'Admin', REGISTRAR: 'Registrar', CASHIER: 'Cashier', TEACHER: 'Teacher', STUDENT: 'Student' };
 
 export default function AdminUserManagement() {
   const { session } = useAuth();
@@ -15,7 +15,12 @@ export default function AdminUserManagement() {
   const [teacherForm, setTeacherForm] = useState({ name: '', email: '', password: '' });
   const [creatingTeacher, setCreatingTeacher] = useState(false);
 
-  const [studentForm, setStudentForm] = useState({ name: '', lrn: '', date_of_birth: '', gender: 'M', class_id: '', email: '', password: '' });
+  const emptyStudentForm = {
+    name: '', lrn: '', date_of_birth: '', gender: 'M', class_id: '', email: '', password: '',
+    guardian_name: '', guardian_relationship: '', guardian_phone: '', guardian_email: '',
+    emergency_contact_name: '', emergency_contact_phone: '',
+  };
+  const [studentForm, setStudentForm] = useState(emptyStudentForm);
   const [creatingStudent, setCreatingStudent] = useState(false);
 
   const [resettingUserId, setResettingUserId] = useState(null);
@@ -58,7 +63,7 @@ export default function AdminUserManagement() {
     setCreatingStudent(true);
     try {
       await api.createStudent(session.token, studentForm);
-      setStudentForm({ name: '', lrn: '', date_of_birth: '', gender: 'M', class_id: classes[0]?.class_id || '', email: '', password: '' });
+      setStudentForm({ ...emptyStudentForm, class_id: classes[0]?.class_id || '' });
       setNotice('Student account created.');
       load();
     } catch (err) {
@@ -156,6 +161,37 @@ export default function AdminUserManagement() {
               <div>
                 <label>Temporary Password</label>
                 <input value={studentForm.password} required onChange={e => setStudentForm({ ...studentForm, password: e.target.value })} />
+              </div>
+            </div>
+            <h4 style={{ marginBottom: 4 }}>Guardian &amp; Emergency Contact (optional)</h4>
+            <div className="form-row">
+              <div>
+                <label>Guardian Name</label>
+                <input value={studentForm.guardian_name} onChange={e => setStudentForm({ ...studentForm, guardian_name: e.target.value })} />
+              </div>
+              <div>
+                <label>Relationship</label>
+                <input placeholder="Mother, Father, Guardian…" value={studentForm.guardian_relationship} onChange={e => setStudentForm({ ...studentForm, guardian_relationship: e.target.value })} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div>
+                <label>Guardian Phone</label>
+                <input value={studentForm.guardian_phone} onChange={e => setStudentForm({ ...studentForm, guardian_phone: e.target.value })} />
+              </div>
+              <div>
+                <label>Guardian Email</label>
+                <input type="email" value={studentForm.guardian_email} onChange={e => setStudentForm({ ...studentForm, guardian_email: e.target.value })} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div>
+                <label>Emergency Contact Name</label>
+                <input value={studentForm.emergency_contact_name} onChange={e => setStudentForm({ ...studentForm, emergency_contact_name: e.target.value })} />
+              </div>
+              <div>
+                <label>Emergency Contact Phone</label>
+                <input value={studentForm.emergency_contact_phone} onChange={e => setStudentForm({ ...studentForm, emergency_contact_phone: e.target.value })} />
               </div>
             </div>
             <button type="submit" disabled={creatingStudent}>{creatingStudent ? 'Adding…' : 'Add Student'}</button>

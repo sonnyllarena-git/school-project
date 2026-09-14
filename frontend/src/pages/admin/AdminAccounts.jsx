@@ -110,7 +110,15 @@ export default function AdminAccounts() {
 
       <AccountView account={account} />
 
-      {account && (
+      {account && session.user.role === 'REGISTRAR' && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
+            Payments are recorded by the Cashier — you have view access here for enrollment-eligibility purposes only.
+          </p>
+        </div>
+      )}
+
+      {account && session.user.role !== 'REGISTRAR' && (
         <div className="card" style={{ marginTop: 16 }}>
           <h3>Record a Payment</h3>
           <form onSubmit={handleRecordPayment}>

@@ -41,6 +41,8 @@ router.get('/students', async (req, res) => {
   // forever off their completed, outgoing year.
   const { rows } = await pool.query(
     `SELECT s.student_id, s.lrn, s.name, s.date_of_birth, s.gender, s.class_id, s.status,
+            s.guardian_name, s.guardian_relationship, s.guardian_phone, s.guardian_email,
+            s.emergency_contact_name, s.emergency_contact_phone,
             c.grade_level, c.section,
             COALESCE(fi.total_assessed, 0) AS total_assessed, COALESCE(p.total_paid, 0) AS total_paid
      FROM students s
@@ -405,7 +407,11 @@ router.get('/classes', async (req, res) => {
 // the only path to a student who can actually log in without going
 // through the seed script.
 router.post('/students', async (req, res) => {
-  const { name, lrn, date_of_birth, gender, class_id, email, password } = req.body;
+  const {
+    name, lrn, date_of_birth, gender, class_id, email, password,
+    guardian_name, guardian_relationship, guardian_phone, guardian_email,
+    emergency_contact_name, emergency_contact_phone,
+  } = req.body;
   if (!name?.trim() || !lrn?.trim() || !date_of_birth || !gender || !class_id || !email?.trim() || !password) {
     return res.status(400).json({ error: 'name, lrn, date_of_birth, gender, class_id, email, and password are required' });
   }
@@ -431,9 +437,17 @@ router.post('/students', async (req, res) => {
       [userId, req.user.school_id, email.trim(), hash, name.trim()]
     );
     await client.query(
-      `INSERT INTO students (student_id, lrn, school_id, class_id, user_id, name, date_of_birth, gender, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Active')`,
-      [studentId, lrn.trim(), req.user.school_id, class_id, userId, name.trim(), encrypt(date_of_birth), gender]
+      `INSERT INTO students (
+         student_id, lrn, school_id, class_id, user_id, name, date_of_birth, gender, status,
+         guardian_name, guardian_relationship, guardian_phone, guardian_email,
+         emergency_contact_name, emergency_contact_phone
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Active', $9, $10, $11, $12, $13, $14)`,
+      [
+        studentId, lrn.trim(), req.user.school_id, class_id, userId, name.trim(), encrypt(date_of_birth), gender,
+        guardian_name?.trim() || null, guardian_relationship?.trim() || null, guardian_phone?.trim() || null, guardian_email?.trim() || null,
+        emergency_contact_name?.trim() || null, emergency_contact_phone?.trim() || null,
+      ]
     );
     await client.query('COMMIT');
   } catch (err) {

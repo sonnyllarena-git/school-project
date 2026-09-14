@@ -2,7 +2,7 @@ require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
 const { Client } = require('pg');
 const { encrypt } = require('../src/lib/crypto');
-const { SUBJECTS, SUBJECT_CODES, GRADING_PERIODS, feeTemplateForGrade } = require('../src/lib/curriculum');
+const { SUBJECTS, SUBJECT_CODES, GRADING_PERIODS, feeTemplateForGrade, REQUIREMENT_TYPES } = require('../src/lib/curriculum');
 
 const SCHOOL_ID = 'STM001';
 const SCHOOL_YEAR = '2025-2026';
@@ -31,6 +31,21 @@ const TEACHERS = [
 const MALE_FIRST = ['Miguel', 'Luis', 'Robert', 'Jose', 'Juan', 'Antonio', 'Manuel', 'Francisco', 'Ricardo', 'Eduardo', 'Rafael', 'Gabriel'];
 const FEMALE_FIRST = ['Maria', 'Angela', 'Carmela', 'Isabel', 'Teresa', 'Josefina', 'Rosario', 'Corazon', 'Beatriz', 'Consuelo', 'Remedios', 'Victoria'];
 const SURNAMES = ['Aquino', 'Bautista', 'Cantos', 'Dato', 'Esguerra', 'Fernandez', 'Guinto', 'Hernandez', 'Ignacio', 'Jimenez', 'Lopez', 'Mercado', 'Navarro', 'Ocampo', 'Pascual', 'Quinto', 'Reyes', 'Santos', 'Torres', 'Uy'];
+
+// Guardian relationship mix — mostly a parent, occasionally a grandparent or
+// other relative standing in, matching how Philippine household setups often
+// work. 'M'/'F' pick which first-name pool the guardian's own name is drawn
+// from; 'either' picks randomly.
+const GUARDIAN_RELATIONSHIPS = [
+  { label: 'Mother', gender: 'F' }, { label: 'Mother', gender: 'F' }, { label: 'Mother', gender: 'F' },
+  { label: 'Father', gender: 'M' }, { label: 'Father', gender: 'M' }, { label: 'Father', gender: 'M' },
+  { label: 'Grandmother', gender: 'F' }, { label: 'Grandfather', gender: 'M' },
+  { label: 'Aunt', gender: 'F' }, { label: 'Uncle', gender: 'M' }, { label: 'Legal Guardian', gender: 'either' },
+];
+
+function randomPhone() {
+  return `09${randInt(10, 99)}${randInt(1000000, 9999999)}`;
+}
 
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -83,7 +98,7 @@ async function main() {
   await client.connect();
 
   await client.query(
-    'TRUNCATE TABLE audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects, teachers, users, schools RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE messages, student_requirements, audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects, teachers, users, schools RESTART IDENTITY CASCADE'
   );
 
   await client.query(
@@ -95,9 +110,11 @@ async function main() {
 
   const adminHash = await bcrypt.hash('Admin@2025', 10);
   const registrarHash = await bcrypt.hash('Registrar@2025', 10);
+  const cashierHash = await bcrypt.hash('Cashier@2025', 10);
   await bulkInsert(client, 'users', ['user_id', 'school_id', 'email', 'password_hash', 'role', 'name'], [
     ['USR-ADMIN-001', SCHOOL_ID, 'admin@stmichaels.ph', adminHash, 'ADMIN', 'Maria Rodriguez'],
     ['USR-REG-001', SCHOOL_ID, 'registrar@stmichaels.ph', registrarHash, 'REGISTRAR', 'John Dela Cruz'],
+    ['USR-CASH-001', SCHOOL_ID, 'cashier@stmichaels.ph', cashierHash, 'CASHIER', 'Leticia Ramos'],
   ]);
 
   const teacherUserRows = [];
@@ -186,6 +203,7 @@ async function main() {
   const gradeRows = [];
   const feeItemRows = [];
   const paymentRows = [];
+  const requirementRows = [];
   const schoolDays = [2, 3, 4, 5, 6, 9, 10, 11, 13, 16, 17, 18, 19, 20, 23, 24, 25, 26, 27]; // June 2025, weekdays, excl. Jun 12 holiday
 
   const studentUserRows = [];
@@ -212,7 +230,21 @@ async function main() {
 
       const studentHash = await bcrypt.hash(`Student@${lrn}`, 10);
       studentUserRows.push([studentUserId, SCHOOL_ID, `student.${lrn}@stmichaels.ph`, studentHash, 'STUDENT', `${first} ${last}`]);
-      studentRows.push([studentId, lrn, SCHOOL_ID, classId, studentUserId, `${first} ${last}`, encrypt(dob), isMale ? 'M' : 'F', 'Active']);
+
+      const rel = GUARDIAN_RELATIONSHIPS[randInt(0, GUARDIAN_RELATIONSHIPS.length - 1)];
+      const guardianGender = rel.gender === 'either' ? (Math.random() < 0.5 ? 'M' : 'F') : rel.gender;
+      const guardianFirst = guardianGender === 'M' ? MALE_FIRST[randInt(0, MALE_FIRST.length - 1)] : FEMALE_FIRST[randInt(0, FEMALE_FIRST.length - 1)];
+      const guardianName = `${guardianFirst} ${last}`;
+      const guardianPhone = randomPhone();
+      const guardianEmail = `${guardianFirst.toLowerCase()}.${last.toLowerCase()}${randInt(1, 99)}@gmail.com`;
+      const emergencyFirst = FEMALE_FIRST[randInt(0, FEMALE_FIRST.length - 1)];
+      const emergencyLast = SURNAMES[randInt(0, SURNAMES.length - 1)];
+
+      studentRows.push([
+        studentId, lrn, SCHOOL_ID, classId, studentUserId, `${first} ${last}`, encrypt(dob), isMale ? 'M' : 'F', 'Active',
+        guardianName, rel.label, guardianPhone, guardianEmail,
+        `${emergencyFirst} ${emergencyLast}`, randomPhone(),
+      ]);
 
       for (const day of schoolDays) {
         const roll = Math.random();
@@ -260,15 +292,49 @@ async function main() {
         ]);
       }
 
+      // Registrar's requirements checklist — most students are fully in
+      // order (a completed enrollment is the common case), a handful are
+      // still mid-checklist, and PENDING rows are simply left out entirely
+      // (the app treats "no row" as PENDING — see requirements.js).
+      const requirementRoll = Math.random();
+      for (const type of REQUIREMENT_TYPES) {
+        let status = null;
+        if (requirementRoll < 0.6) status = 'VERIFIED';
+        else if (requirementRoll < 0.85) status = Math.random() < 0.5 ? 'SUBMITTED' : 'VERIFIED';
+        else if (Math.random() < 0.4) status = 'SUBMITTED';
+        if (!status) continue;
+        requirementRows.push([
+          `REQ-${studentId}-${type.replace(/[^A-Za-z0-9]+/g, '')}`, studentId, type, status,
+          '2025-05-15', status === 'VERIFIED' ? '2025-05-20' : null, status === 'VERIFIED' ? 'USR-REG-001' : null, null,
+        ]);
+      }
+
       studentSeq++;
     }
   }
   await bulkInsert(client, 'users', ['user_id', 'school_id', 'email', 'password_hash', 'role', 'name'], studentUserRows);
-  await bulkInsert(client, 'students', ['student_id', 'lrn', 'school_id', 'class_id', 'user_id', 'name', 'date_of_birth', 'gender', 'status'], studentRows);
+  await bulkInsert(client, 'students', [
+    'student_id', 'lrn', 'school_id', 'class_id', 'user_id', 'name', 'date_of_birth', 'gender', 'status',
+    'guardian_name', 'guardian_relationship', 'guardian_phone', 'guardian_email',
+    'emergency_contact_name', 'emergency_contact_phone',
+  ], studentRows);
   await bulkInsert(client, 'attendance', ['attendance_id', 'class_id', 'student_id', 'date', 'status', 'time_in', 'notes', 'recorded_by'], attendanceRows);
   await bulkInsert(client, 'grades', ['grade_id', 'class_id', 'student_id', 'subject', 'grading_period', 'first_period_exam', 'second_period_exam', 'third_period_exam', 'formative_score', 'final_grade', 'recorded_by'], gradeRows);
   await bulkInsert(client, 'fee_items', ['fee_item_id', 'student_id', 'school_year', 'fee_type', 'amount', 'description'], feeItemRows);
   await bulkInsert(client, 'payments', ['payment_id', 'student_id', 'school_year', 'amount', 'payment_date', 'method', 'reference_no', 'recorded_by', 'notes'], paymentRows);
+  await bulkInsert(client, 'student_requirements', ['requirement_id', 'student_id', 'requirement_type', 'status', 'submitted_at', 'verified_at', 'verified_by', 'notes'], requirementRows);
+
+  await bulkInsert(client, 'messages', ['message_id', 'school_id', 'sender_user_id', 'audience_type', 'audience_grade_level', 'audience_section', 'audience_student_id', 'subject', 'body'], [
+    ['MSG-001', SCHOOL_ID, 'USR-ADMIN-001', 'ALL', null, null, null,
+      'Welcome to School Year 2025-2026',
+      'Good day, everyone! Classes officially begin on June 2, 2025. Please check the Schedules tab for your class times and bring your enrollment documents on the first day.'],
+    ['MSG-002', SCHOOL_ID, 'USR-ADMIN-001', 'ALL', null, null, null,
+      'Reminder: Tuition Payment Deadline',
+      "This is a reminder that the deadline for the first tuition installment is June 30, 2025. Please settle your child's account at the Accounts office or contact the Cashier for payment plan options."],
+    ['MSG-003', SCHOOL_ID, 'USR-TCH-001', 'GRADE_SECTION', 1, 'A', null,
+      'Grade 1-A: Bring Extra Notebooks Tomorrow',
+      "Hi parents, please remind your child to bring an extra notebook and pencil tomorrow for our Values Education activity. Thank you!"],
+  ]);
 
   const counts = await client.query(`
     SELECT
@@ -279,7 +345,9 @@ async function main() {
       (SELECT COUNT(*) FROM grades) AS grades,
       (SELECT COUNT(*) FROM users) AS users,
       (SELECT COUNT(*) FROM fee_items) AS fee_items,
-      (SELECT COUNT(*) FROM payments) AS payments
+      (SELECT COUNT(*) FROM payments) AS payments,
+      (SELECT COUNT(*) FROM student_requirements) AS student_requirements,
+      (SELECT COUNT(*) FROM messages) AS messages
   `);
   console.log(counts.rows[0]);
 

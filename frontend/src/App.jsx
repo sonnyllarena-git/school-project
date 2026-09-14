@@ -27,6 +27,19 @@ import ReportCard from './pages/ReportCard';
 import AdminAuditLog from './pages/admin/AdminAuditLog';
 import AdminAccounting from './pages/admin/AdminAccounting';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
+import RegistrarDashboard from './pages/registrar/RegistrarDashboard';
+import RegistrarRequirements from './pages/registrar/RegistrarRequirements';
+import RegistrarDocuments from './pages/registrar/RegistrarDocuments';
+import CashierDashboard from './pages/cashier/CashierDashboard';
+import Messages from './pages/Messages';
+import GoodMoralCertificate from './pages/GoodMoralCertificate';
+import HonorableDismissal from './pages/HonorableDismissal';
+import TranscriptOfRecords from './pages/TranscriptOfRecords';
+
+const ADMIN_REGISTRAR = ['ADMIN', 'REGISTRAR'];
+const ADMIN_CASHIER = ['ADMIN', 'CASHIER'];
+const ADMIN_REGISTRAR_CASHIER = ['ADMIN', 'REGISTRAR', 'CASHIER'];
+const EVERYONE = ['ADMIN', 'REGISTRAR', 'CASHIER', 'TEACHER', 'STUDENT'];
 
 export default function App() {
   return (
@@ -45,14 +58,25 @@ export default function App() {
           <Route path="/admin/students" element={<ProtectedRoute role="ADMIN"><AdminStudents /></ProtectedRoute>} />
           <Route path="/admin/import" element={<ProtectedRoute role="ADMIN"><AdminImport /></ProtectedRoute>} />
           <Route path="/admin/export" element={<ProtectedRoute role="ADMIN"><AdminExport /></ProtectedRoute>} />
-          <Route path="/admin/accounts" element={<ProtectedRoute role="ADMIN"><AdminAccounts /></ProtectedRoute>} />
-          <Route path="/admin/accounting" element={<ProtectedRoute role="ADMIN"><AdminAccounting /></ProtectedRoute>} />
+          <Route path="/admin/accounts" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><AdminAccounts /></ProtectedRoute>} />
+          <Route path="/admin/accounting" element={<ProtectedRoute role={ADMIN_CASHIER}><AdminAccounting /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute role="ADMIN"><AdminUserManagement /></ProtectedRoute>} />
-          <Route path="/admin/enrollment" element={<ProtectedRoute role="ADMIN"><AdminEnrollment /></ProtectedRoute>} />
-          <Route path="/admin/students/:studentId/certificate" element={<ProtectedRoute role="ADMIN"><Certificate source="admin" /></ProtectedRoute>} />
-          <Route path="/admin/students/:studentId/soa" element={<ProtectedRoute role="ADMIN"><StatementOfAccount source="admin" /></ProtectedRoute>} />
-          <Route path="/admin/students/:studentId/report-card" element={<ProtectedRoute role="ADMIN"><ReportCard source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/enrollment" element={<ProtectedRoute role={ADMIN_REGISTRAR}><AdminEnrollment /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/certificate" element={<ProtectedRoute role={ADMIN_REGISTRAR}><Certificate source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/soa" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><StatementOfAccount source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/report-card" element={<ProtectedRoute role={ADMIN_REGISTRAR}><ReportCard source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/good-moral" element={<ProtectedRoute role={ADMIN_REGISTRAR}><GoodMoralCertificate /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/honorable-dismissal" element={<ProtectedRoute role={ADMIN_REGISTRAR}><HonorableDismissal /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/transcript" element={<ProtectedRoute role={ADMIN_REGISTRAR}><TranscriptOfRecords /></ProtectedRoute>} />
           <Route path="/admin/audit-log" element={<ProtectedRoute role="ADMIN"><AdminAuditLog /></ProtectedRoute>} />
+
+          <Route path="/registrar" element={<ProtectedRoute role="REGISTRAR"><RegistrarDashboard /></ProtectedRoute>} />
+          <Route path="/registrar/requirements" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarRequirements /></ProtectedRoute>} />
+          <Route path="/registrar/documents" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarDocuments /></ProtectedRoute>} />
+
+          <Route path="/cashier" element={<ProtectedRoute role="CASHIER"><CashierDashboard /></ProtectedRoute>} />
+
+          <Route path="/messages" element={<ProtectedRoute role={EVERYONE}><Messages /></ProtectedRoute>} />
 
           <Route path="/teacher/attendance" element={<ProtectedRoute role="TEACHER"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/grades" element={<ProtectedRoute role="TEACHER"><TeacherGrades /></ProtectedRoute>} />

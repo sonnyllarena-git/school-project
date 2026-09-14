@@ -5,6 +5,7 @@ import {
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
   Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon, ClockIcon,
   DocumentMagnifyingGlassIcon, CalculatorIcon, UsersIcon,
+  ClipboardDocumentListIcon, DocumentTextIcon, ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
@@ -26,10 +27,25 @@ const NAV_BY_ROLE = {
     { to: '/admin/accounting', labelKey: 'accounting', icon: CalculatorIcon },
     { to: '/admin/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
     { to: '/admin/audit-log', labelKey: 'audit_log', icon: DocumentMagnifyingGlassIcon },
+    { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
+  ],
+  REGISTRAR: [
+    { to: '/registrar', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
+    { to: '/admin/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
+    { to: '/registrar/requirements', labelKey: 'requirements', icon: ClipboardDocumentListIcon },
+    { to: '/registrar/documents', labelKey: 'documents', icon: DocumentTextIcon },
+    { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
+  ],
+  CASHIER: [
+    { to: '/cashier', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
+    { to: '/admin/accounts', labelKey: 'accounts', icon: BanknotesIcon },
+    { to: '/admin/accounting', labelKey: 'accounting', icon: CalculatorIcon },
+    { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
   ],
   TEACHER: [
     { to: '/teacher/attendance', labelKey: 'attendance', icon: ClipboardDocumentCheckIcon },
     { to: '/teacher/grades', labelKey: 'grades', icon: PencilSquareIcon },
+    { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
   ],
   STUDENT: [
     { to: '/student', labelKey: 'my_grades', end: true, icon: ChartBarIcon },
@@ -37,6 +53,7 @@ const NAV_BY_ROLE = {
     { to: '/student/schedule', labelKey: 'my_schedule', icon: BookOpenIcon },
     { to: '/student/account', labelKey: 'my_account', icon: BanknotesIcon },
     { to: '/student/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
+    { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
   ],
 };
 

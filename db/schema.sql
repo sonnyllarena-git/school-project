@@ -8,8 +8,9 @@
 -- Re-runnable: drops and recreates everything. Fine for this bootstrap/demo
 -- phase (seed.js always repopulates from scratch); revisit before real data
 -- exists — this would then need real migrations instead of DROP + CREATE.
-DROP TABLE IF EXISTS backups, audit_logs, enrollments, payments, fee_items, grades,
-  attendance, students, classes, teacher_subjects, subjects, teachers, users, schools,
+DROP TABLE IF EXISTS messages, student_requirements, backups, audit_logs, enrollments,
+  payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects,
+  teachers, users, schools,
   student_guardians, guardians CASCADE; -- one-time cleanup of retired Parent-role tables
 
 CREATE TABLE schools (
@@ -33,7 +34,7 @@ CREATE TABLE users (
   school_id     TEXT NOT NULL REFERENCES schools(school_id),
   email         TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'TEACHER', 'STUDENT')),
+  role          TEXT NOT NULL CHECK (role IN ('ADMIN', 'REGISTRAR', 'CASHIER', 'TEACHER', 'STUDENT')),
   name          TEXT NOT NULL,
   -- Stored preference only — no email/SMS sending is wired up yet (no
   -- provider integration). See LESSONS.md.
@@ -107,6 +108,15 @@ CREATE TABLE students (
   date_of_birth TEXT,
   gender        TEXT,
   status        TEXT NOT NULL DEFAULT 'Active',
+  -- Guardian/emergency contact — plaintext like the rest of a student's
+  -- non-DOB fields (name, gender); only date_of_birth gets the AES-256-GCM
+  -- treatment in this system (see the comment above and LESSONS.md).
+  guardian_name             TEXT,
+  guardian_relationship     TEXT,
+  guardian_phone            TEXT,
+  guardian_email            TEXT,
+  emergency_contact_name    TEXT,
+  emergency_contact_phone   TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -187,6 +197,23 @@ CREATE TABLE enrollments (
   UNIQUE (student_id, school_year)
 );
 
+-- Registrar's enrollment-requirements checklist (Birth Certificate, Form
+-- 137, etc. — the fixed catalog lives in backend/src/lib/curriculum.js as
+-- REQUIREMENT_TYPES, not a separate table, since schools don't customize
+-- this list). One row per (student, requirement_type); rows are created
+-- lazily (on first view) rather than for every student up front.
+CREATE TABLE student_requirements (
+  requirement_id    TEXT PRIMARY KEY,
+  student_id        TEXT NOT NULL REFERENCES students(student_id),
+  requirement_type  TEXT NOT NULL,
+  status            TEXT NOT NULL CHECK (status IN ('PENDING', 'SUBMITTED', 'VERIFIED')) DEFAULT 'PENDING',
+  submitted_at      TIMESTAMPTZ,
+  verified_at       TIMESTAMPTZ,
+  verified_by       TEXT REFERENCES users(user_id),
+  notes             TEXT,
+  UNIQUE (student_id, requirement_type)
+);
+
 CREATE TABLE audit_logs (
   audit_id       TEXT PRIMARY KEY,
   school_id      TEXT NOT NULL REFERENCES schools(school_id),
@@ -197,6 +224,24 @@ CREATE TABLE audit_logs (
   ip_address     TEXT,
   status         TEXT NOT NULL,
   timestamp      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- School-wide announcements (the "Messaging" MVP item, §2 of CLAUDE.md,
+-- scoped down to broadcast-only for this round — no private 1:1 threads,
+-- no read/unread tracking). A recipient's inbox is just "every message
+-- whose audience matches me", computed at read time, not fanned out into
+-- per-recipient rows.
+CREATE TABLE messages (
+  message_id            TEXT PRIMARY KEY,
+  school_id             TEXT NOT NULL REFERENCES schools(school_id),
+  sender_user_id         TEXT NOT NULL REFERENCES users(user_id),
+  audience_type          TEXT NOT NULL CHECK (audience_type IN ('ALL', 'GRADE_SECTION', 'STUDENT')),
+  audience_grade_level   INT,
+  audience_section       TEXT,
+  audience_student_id    TEXT REFERENCES students(student_id),
+  subject                TEXT NOT NULL,
+  body                   TEXT NOT NULL,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE backups (

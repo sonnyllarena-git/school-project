@@ -6,6 +6,8 @@ import Footer from '../components/Footer';
 
 const HOME_BY_ROLE = {
   ADMIN: '/admin',
+  REGISTRAR: '/registrar',
+  CASHIER: '/cashier',
   TEACHER: '/teacher/attendance',
   STUDENT: '/student',
 };
@@ -62,6 +64,8 @@ export default function Login() {
         </form>
         <div className="demo-creds">
           Demo accounts: <code>admin@stmichaels.ph / Admin@2025</code>,{' '}
+          <code>registrar@stmichaels.ph / Registrar@2025</code>,{' '}
+          <code>cashier@stmichaels.ph / Cashier@2025</code>,{' '}
           <code>teacher.1@stmichaels.ph / Teacher@1</code>,{' '}
           <code>student.123001@stmichaels.ph / Student@123001</code>{' '}
           (a parent uses this same student login — no separate Parent account)

@@ -68,6 +68,34 @@ export default function StudentDetailModal({ token, student, onClose }) {
         </div>
 
         <div className="modal-section">
+          <h3 style={{ marginTop: 0 }}>Guardian &amp; Emergency Contact</h3>
+          <div className="form-row" style={{ marginBottom: 0 }}>
+            <div>
+              <label>Guardian</label>
+              <div>{student.guardian_name ? `${student.guardian_name} (${student.guardian_relationship || 'Guardian'})` : '—'}</div>
+            </div>
+            <div>
+              <label>Guardian Phone</label>
+              <div>{student.guardian_phone || '—'}</div>
+            </div>
+            <div>
+              <label>Guardian Email</label>
+              <div>{student.guardian_email || '—'}</div>
+            </div>
+          </div>
+          <div className="form-row" style={{ marginBottom: 0, marginTop: 12 }}>
+            <div>
+              <label>Emergency Contact</label>
+              <div>{student.emergency_contact_name || '—'}</div>
+            </div>
+            <div>
+              <label>Emergency Contact Phone</label>
+              <div>{student.emergency_contact_phone || '—'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-section">
           {error && <div className="error-banner">{error}</div>}
           {grades && grades.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>

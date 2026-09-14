@@ -41,10 +41,25 @@ function feeTemplateForGrade(grade) {
   return grade <= 3 ? FEE_TEMPLATES.low : FEE_TEMPLATES.high;
 }
 
+// Registrar's enrollment-requirements checklist — a fixed catalog (not a
+// school-customizable table) shared by seed.js and routes/requirements.js
+// so the list can't drift between what's seeded and what the UI offers.
+const REQUIREMENT_TYPES = [
+  'Birth Certificate',
+  'Form 137 (Report Card from Previous School)',
+  'Good Moral Certificate',
+  'Medical/Immunization Record',
+  '2x2 ID Photos (2 pcs)',
+  "Parent's Valid ID",
+];
+
 // '2025-2026' -> '2026-2027'
 function nextSchoolYear(schoolYear) {
   const [start] = schoolYear.split('-').map(Number);
   return `${start + 1}-${start + 2}`;
 }
 
-module.exports = { SUBJECTS, SUBJECT_CODES, GRADING_PERIODS, PASSING_GRADE, FEE_TEMPLATES, feeTemplateForGrade, nextSchoolYear };
+module.exports = {
+  SUBJECTS, SUBJECT_CODES, GRADING_PERIODS, PASSING_GRADE, FEE_TEMPLATES,
+  feeTemplateForGrade, nextSchoolYear, REQUIREMENT_TYPES,
+};

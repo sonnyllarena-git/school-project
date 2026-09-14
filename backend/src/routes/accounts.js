@@ -5,13 +5,22 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { getStudentAccount, computeStatus, getActiveSchoolYear, CURRENT_SCHOOL_YEAR } = require('../lib/account');
 
 const router = express.Router();
-router.use(requireAuth, requireRole('ADMIN', 'REGISTRAR'));
+router.use(requireAuth);
+
+// Viewing balances/ledger is fine for all three finance-adjacent roles.
+// Recording a payment is Cashier's job specifically (Registrar can see
+// balances for enrollment-eligibility purposes but doesn't handle money).
+// Fee-item corrections (assessment fixes, not money handling) stay with
+// Registrar+Admin, matching who owns the enrollment/SOA workflow.
+const VIEW_ROLES = ['ADMIN', 'REGISTRAR', 'CASHIER'];
+const PAYMENT_ROLES = ['ADMIN', 'CASHIER'];
+const FEE_ITEM_ROLES = ['ADMIN', 'REGISTRAR'];
 
 // Returns every student with their grade/section/adviser plus computed
 // payment status for the given school year — the raw material for the
 // Accounts page's grade/section/status filters (filtering itself happens
 // client-side; this just needs to include the fields to filter on).
-router.get('/students', async (req, res) => {
+router.get('/students', requireRole(...VIEW_ROLES), async (req, res) => {
   // An explicit school_year pins every row to that one year (e.g. a report
   // for a specific year). Without one, each student's OWN active year is
   // used — CURRENT_SCHOOL_YEAR, unless they already have a certificate
@@ -54,7 +63,7 @@ router.get('/students', async (req, res) => {
 // every student and school year, in one place (unlike /students above,
 // which is scoped to each student's own current obligation). Optional
 // filters narrow it down; with none, it's the full ledger.
-router.get('/ledger', async (req, res) => {
+router.get('/ledger', requireRole(...VIEW_ROLES), async (req, res) => {
   const { school_year, method, from, to } = req.query;
   const clauses = ['s.school_id = $1'];
   const params = [req.user.school_id];
@@ -82,7 +91,7 @@ router.get('/ledger', async (req, res) => {
 // clamp exists so one student's card never shows a negative number; here
 // we still clamp the final outstanding figure at 0 for the same display
 // reason, but the assessed/paid pieces underneath it are raw sums).
-router.get('/summary', async (req, res) => {
+router.get('/summary', requireRole(...VIEW_ROLES), async (req, res) => {
   const { school_year } = req.query;
   const feeParams = [req.user.school_id];
   const payParams = [req.user.school_id];
@@ -135,7 +144,7 @@ router.get('/summary', async (req, res) => {
   });
 });
 
-router.get('/students/:studentId', async (req, res) => {
+router.get('/students/:studentId', requireRole(...VIEW_ROLES), async (req, res) => {
   const { rows } = await pool.query(
     'SELECT student_id, lrn, name FROM students WHERE student_id = $1 AND school_id = $2',
     [req.params.studentId, req.user.school_id]
@@ -146,7 +155,7 @@ router.get('/students/:studentId', async (req, res) => {
   res.json({ student_id: rows[0].student_id, lrn: rows[0].lrn, name: rows[0].name, ...account });
 });
 
-router.post('/students/:studentId/payments', async (req, res) => {
+router.post('/students/:studentId/payments', requireRole(...PAYMENT_ROLES), async (req, res) => {
   const { amount, payment_date, method, reference_no, notes, school_year } = req.body;
   if (!amount || Number(amount) <= 0 || !payment_date || !['CASH', 'GCASH', 'BANK_TRANSFER'].includes(method)) {
     return res.status(400).json({ error: 'amount (>0), payment_date, and a valid method (CASH/GCASH/BANK_TRANSFER) are required' });
@@ -186,7 +195,7 @@ router.post('/students/:studentId/payments', async (req, res) => {
 // ASSESSED/PRINTED); the ledger recalculates total_assessed/balance live from
 // whatever fee_items exist, so an edit after a payment is already recorded
 // just changes the resulting balance, nothing is silently lost.
-router.post('/students/:studentId/fee-items', async (req, res) => {
+router.post('/students/:studentId/fee-items', requireRole(...FEE_ITEM_ROLES), async (req, res) => {
   const { school_year, fee_type, amount, description } = req.body;
   if (!school_year || !fee_type?.trim() || !amount || Number(amount) <= 0) {
     return res.status(400).json({ error: 'school_year, fee_type, and amount (>0) are required' });
@@ -215,7 +224,7 @@ async function findOwnFeeItem(feeItemId, studentId, schoolId) {
   return rows[0] || null;
 }
 
-router.patch('/students/:studentId/fee-items/:feeItemId', async (req, res) => {
+router.patch('/students/:studentId/fee-items/:feeItemId', requireRole(...FEE_ITEM_ROLES), async (req, res) => {
   const item = await findOwnFeeItem(req.params.feeItemId, req.params.studentId, req.user.school_id);
   if (!item) return res.status(404).json({ error: 'fee item not found' });
 
@@ -235,7 +244,7 @@ router.patch('/students/:studentId/fee-items/:feeItemId', async (req, res) => {
   res.json(await getStudentAccount(req.params.studentId, item.school_year));
 });
 
-router.delete('/students/:studentId/fee-items/:feeItemId', async (req, res) => {
+router.delete('/students/:studentId/fee-items/:feeItemId', requireRole(...FEE_ITEM_ROLES), async (req, res) => {
   const item = await findOwnFeeItem(req.params.feeItemId, req.params.studentId, req.user.school_id);
   if (!item) return res.status(404).json({ error: 'fee item not found' });
 
