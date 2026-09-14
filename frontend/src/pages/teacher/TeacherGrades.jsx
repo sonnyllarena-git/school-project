@@ -40,14 +40,32 @@ export default function TeacherGrades() {
       .then(({ data: students, fromCache }) => {
         setRoster(students);
         if (fromCache) setNotice('Showing this class roster from the last time you were online.');
+      })
+      .catch(err => setError(err.message));
+  }, [classId, session]);
+
+  // Pre-fill whatever's already on file for this subject/period so reopening
+  // it (e.g. to bump a final grade after a student retakes an exam) shows the
+  // existing scores instead of blank inputs — saving is a full-row overwrite,
+  // so blank fields left untouched here would otherwise wipe them.
+  useEffect(() => {
+    if (!classId || roster.length === 0) return;
+    const blank = {};
+    roster.forEach(s => { blank[s.student_id] = {}; });
+    setScores(blank);
+    api.getClassGrades(session.token, classId, subject, gradingPeriod)
+      .then(existing => {
         setScores(prev => {
-          const next = {};
-          students.forEach(s => { next[s.student_id] = prev[s.student_id] || {}; });
+          const next = { ...prev };
+          existing.forEach(g => {
+            next[g.student_id] = {};
+            FIELDS.forEach(f => { if (g[f] !== null && g[f] !== undefined) next[g.student_id][f] = g[f]; });
+          });
           return next;
         });
       })
       .catch(err => setError(err.message));
-  }, [classId, session]);
+  }, [classId, subject, gradingPeriod, roster, session]);
 
   function setScore(studentId, field, value) {
     setScores(prev => ({ ...prev, [studentId]: { ...prev[studentId], [field]: value } }));

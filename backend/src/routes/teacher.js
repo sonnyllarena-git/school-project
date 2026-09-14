@@ -89,6 +89,27 @@ router.get('/classes/:classId/attendance', async (req, res) => {
   res.json(rows);
 });
 
+// Lets a teacher re-open a subject/period they already graded (e.g. after a
+// student retakes an exam or turns in a missed project) and see what's on
+// file instead of facing blank inputs — saving over a blank would otherwise
+// wipe every other student's scores for that subject/period, since grade
+// entry below is a full-row overwrite, not a per-field patch.
+router.get('/classes/:classId/grades', async (req, res) => {
+  const { classId } = req.params;
+  const { subject, grading_period } = req.query;
+  const own = await findOwnClass(classId, req.user.user_id);
+  if (!own) return res.status(403).json({ error: 'not your class' });
+  if (!subject || !grading_period) {
+    return res.status(400).json({ error: 'subject and grading_period query params are required' });
+  }
+  const { rows } = await pool.query(
+    `SELECT student_id, first_period_exam, second_period_exam, third_period_exam, formative_score, final_grade
+     FROM grades WHERE class_id = $1 AND subject = $2 AND grading_period = $3`,
+    [classId, subject, grading_period]
+  );
+  res.json(rows);
+});
+
 router.post('/classes/:classId/grades', async (req, res) => {
   const { classId } = req.params;
   const { subject, grading_period, records } = req.body;

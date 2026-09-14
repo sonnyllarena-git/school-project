@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import StudentDetailModal from '../../components/StudentDetailModal';
 import { useAuth } from '../../lib/AuthContext';
@@ -7,6 +8,7 @@ import { STATUS_LABEL, STATUS_PILL, STATUS_OPTIONS } from '../../lib/accountStat
 
 export default function AdminStudents() {
   const { session } = useAuth();
+  const [searchParams] = useSearchParams();
   const [students, setStudents] = useState([]);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(null);
@@ -18,7 +20,14 @@ export default function AdminStudents() {
   const [selected, setSelected] = useState(null);
 
   function load() {
-    api.listStudents(session.token).then(setStudents).catch(err => setError(err.message));
+    api.listStudents(session.token).then(list => {
+      setStudents(list);
+      const fromLink = searchParams.get('student');
+      if (fromLink) {
+        const match = list.find(s => s.student_id === fromLink);
+        if (match) setSelected(match);
+      }
+    }).catch(err => setError(err.message));
   }
 
   useEffect(load, [session]);

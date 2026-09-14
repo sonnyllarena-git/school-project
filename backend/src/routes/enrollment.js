@@ -128,9 +128,15 @@ router.post('/:studentId/issue-certificate', async (req, res) => {
   if (!enrollment || enrollment.status !== 'PRINTED') {
     return res.status(400).json({ error: 'student must be PRINTED before the certificate can be issued' });
   }
+  // At least a partial payment toward the new school year is required — full
+  // payment is NOT required (a deliberate call: a school may enroll a student
+  // on a partial payment plan). Zero payment (PENDING_PAYMENT) still blocks
+  // issuance. Any outstanding balance simply carries forward and keeps
+  // showing on the Accounts page for that school year — nothing is written
+  // off by issuing the certificate.
   const account = await getStudentAccount(req.params.studentId, NEXT_SCHOOL_YEAR);
-  if (account.status !== 'FULLY_PAID') {
-    return res.status(400).json({ error: 'the new school year balance must be fully paid before issuing the certificate', balance: account.balance });
+  if (account.status === 'PENDING_PAYMENT') {
+    return res.status(400).json({ error: 'at least a partial payment for the new school year is required before issuing the certificate', balance: account.balance });
   }
 
   // Promote into the same section letter the student is already in (Grade N

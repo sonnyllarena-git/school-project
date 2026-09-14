@@ -22,6 +22,9 @@ import StudentSchedule from './pages/student/StudentSchedule';
 import StatusPage from './pages/StatusPage';
 import LegalDoc from './pages/LegalDoc';
 import Certificate from './pages/Certificate';
+import StatementOfAccount from './pages/StatementOfAccount';
+import ReportCard from './pages/ReportCard';
+import AdminAuditLog from './pages/admin/AdminAuditLog';
 
 export default function App() {
   return (
@@ -43,6 +46,9 @@ export default function App() {
           <Route path="/admin/accounts" element={<ProtectedRoute role="ADMIN"><AdminAccounts /></ProtectedRoute>} />
           <Route path="/admin/enrollment" element={<ProtectedRoute role="ADMIN"><AdminEnrollment /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/certificate" element={<ProtectedRoute role="ADMIN"><Certificate source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/soa" element={<ProtectedRoute role="ADMIN"><StatementOfAccount source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/report-card" element={<ProtectedRoute role="ADMIN"><ReportCard source="admin" /></ProtectedRoute>} />
+          <Route path="/admin/audit-log" element={<ProtectedRoute role="ADMIN"><AdminAuditLog /></ProtectedRoute>} />
 
           <Route path="/teacher/attendance" element={<ProtectedRoute role="TEACHER"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/grades" element={<ProtectedRoute role="TEACHER"><TeacherGrades /></ProtectedRoute>} />
@@ -53,6 +59,7 @@ export default function App() {
           <Route path="/student/enrollment" element={<ProtectedRoute role="STUDENT"><StudentEnrollment /></ProtectedRoute>} />
           <Route path="/student/schedule" element={<ProtectedRoute role="STUDENT"><StudentSchedule /></ProtectedRoute>} />
           <Route path="/student/certificate" element={<ProtectedRoute role="STUDENT"><Certificate source="student" /></ProtectedRoute>} />
+          <Route path="/student/report-card" element={<ProtectedRoute role="STUDENT"><ReportCard source="student" /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

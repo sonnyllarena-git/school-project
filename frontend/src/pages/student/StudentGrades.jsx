@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import StatCard from '../../components/StatCard';
 import GradesView from '../../components/GradesView';
@@ -7,6 +8,7 @@ import { api } from '../../lib/api';
 
 export default function StudentGrades() {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const [grades, setGrades] = useState(null);
   const [error, setError] = useState('');
 
@@ -30,6 +32,12 @@ export default function StudentGrades() {
         <StatCard label="Overall Average" value={average ?? '—'} />
         <StatCard label="Grading Periods" value={periodCount} />
       </div>
+
+      {grades.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button className="secondary" onClick={() => navigate('/student/report-card')}>Print Report Card</button>
+        </div>
+      )}
 
       <GradesView grades={grades} />
     </Layout>

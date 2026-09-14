@@ -69,10 +69,24 @@ export default function StudentDetailModal({ token, student, onClose }) {
 
         <div className="modal-section">
           {error && <div className="error-banner">{error}</div>}
+          {grades && grades.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button className="secondary" onClick={() => window.open(`/admin/students/${student.student_id}/report-card`, '_blank')}>
+                Print Report Card
+              </button>
+            </div>
+          )}
           <GradesView grades={grades} />
         </div>
 
         <div className="modal-section">
+          {account && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button className="secondary" onClick={() => window.open(`/admin/students/${student.student_id}/soa`, '_blank')}>
+                Print Preview (SOA)
+              </button>
+            </div>
+          )}
           <AccountView account={account} />
         </div>
 

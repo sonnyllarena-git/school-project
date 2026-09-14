@@ -10,6 +10,25 @@ const { CURRENT_SCHOOL_YEAR, computeStatus } = require('../lib/account');
 const router = express.Router();
 router.use(requireAuth, requireRole('ADMIN'));
 
+// Audit Log viewer (CLAUDE.md §1.1: "Audit logs for all data access"). Most
+// recent 200 events — the table itself has no retention cap yet, this route
+// just doesn't return the whole history at once. LEFT JOIN because a right-
+// to-deletion purges the deleted student's own audit rows along with their
+// user account, but shouldn't hide any OTHER row that happens to reference it.
+router.get('/audit-logs', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT a.audit_id, a.action, a.table_affected, a.record_count, a.status, a.ip_address, a.timestamp,
+            u.name AS user_name, u.role AS user_role
+     FROM audit_logs a
+     LEFT JOIN users u ON u.user_id = a.user_id
+     WHERE a.school_id = $1
+     ORDER BY a.timestamp DESC
+     LIMIT 200`,
+    [req.user.school_id]
+  );
+  res.json(rows);
+});
+
 // enrollment_status is the same computed PENDING_PAYMENT/PARTIALLY_PAID/
 // FULLY_PAID used on the Accounts page (see lib/account.js) — shown here
 // instead of the raw `students.status` administrative flag, per the roster

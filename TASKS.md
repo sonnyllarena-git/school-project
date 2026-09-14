@@ -454,3 +454,140 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     order with full exam breakdowns, then confirmed the student's own "My Grades" page still renders
     identically post-refactor; reseeded afterward to clear a test-write artifact
 
+- [x] **Task AH: Admin SOA Print Preview**
+  - New standalone printable page `StatementOfAccount.jsx` (`/admin/students/:studentId/soa`) —
+    mirrors `Certificate.jsx`'s established pattern exactly: no sidebar/`Layout`, a `.no-print`
+    back-link + Print button row, content in the existing `.certificate` CSS class (already has
+    `@media print` rules), `window.print()`, no PDF library
+  - "Print Preview" entry points added in both places the SOA is already shown: the Admin Accounts
+    page (button above `AccountView`, navigates in the same tab — back link returns to
+    `/admin/accounts?student=<id>` so the selection isn't lost) and the Student Detail modal
+    (button labeled "Print Preview (SOA)", opens in a new tab since closing it shouldn't lose the
+    admin's place in the Students list/modal)
+  - `GET /accounts/students/:studentId` (accounts.js) now also returns `lrn` — needed for the printed
+    document but wasn't being selected before (only `student_id`, `name`)
+  - Verify: clicked "Print Preview" from the Accounts page — confirmed the standalone page renders
+    school name, student name/LRN/grade-section/adviser, status pill, itemized charges, totals, and
+    payment history, with a working Back link back to the same student; confirmed the same button
+    exists and works from the Student Detail modal (double-click a student on the Students page)
+
+- [x] **Task AI: Printable Report Card, Audit Log Viewer, Edit School Info**
+  - **Report Card** (`ReportCard.jsx`, same standalone-printable pattern as `Certificate.jsx`/
+    `StatementOfAccount.jsx`): pivots the flat per-quarter grade rows (already returned by the existing
+    `GET /admin/students/:id/grades` and `GET /student/grades`) into one row per subject with a
+    column per quarter, a general average, and Passed/Failed remarks. **No backend changes** — the
+    admin version combines `getStudentGrades` + the already-rich `getAccount` response (which already
+    had name/lrn/grade/section/adviser) for the header; the student version combines `myGrades` +
+    `myAccount` + `session.user.name` (their own account endpoint has no LRN, so the student's own
+    report card just omits that line). Entry points: "Print Report Card" button in the Student Detail
+    modal (admin, opens in a new tab) and on the student's own "My Grades" page (same tab)
+  - **Audit Log viewer** (`AdminAuditLog.jsx`, new "Audit Log" admin nav tab): new
+    `GET /admin/audit-logs` returns the most recent 200 `audit_logs` rows for the school, joined to
+    `users` for a human-readable name/role instead of a raw `user_id`. This is the first UI surface
+    for the audit logging CLAUDE.md §1.1 already required and had been writing to since Task A/K —
+    previously the data existed but nothing ever displayed it
+  - **Edit School Info**: the Dashboard's "School Info" card was read-only despite `PATCH /admin/school`
+    existing since Phase 1 — added an Edit/Save/Cancel toggle backed by that same endpoint (no backend
+    change needed here either)
+  - `GET /accounts/students/:studentId` now also selects `lrn` (was already selecting `name`) — the
+    Report Card needed it and it was a one-line addition to an existing query
+  - Verify: curled `/admin/audit-logs` (confirmed real LOGIN rows, then triggered a deliberate failed
+    login and confirmed a `FAILURE` row appeared); curled the school PATCH end-to-end; in the browser,
+    edited and saved School Info (confirmed persisted, then reverted), viewed the Audit Log page
+    (real login history), opened the admin Report Card for a student (correct pivot table + general
+    average + remarks) and the student's own version (same data, no LRN line, as designed)
+
+- [x] **Task AJ: Allow Certificate Issuance on Partial Payment (Next School Year)**
+  - Deliberate business-rule reversal, by direct request: `POST /enrollment/:studentId/issue-certificate`
+    previously required the *next* school year's balance to be `FULLY_PAID` (Task W's original design).
+    Now only rejects `PENDING_PAYMENT` (literally zero paid) — `PARTIALLY_PAID` or `FULLY_PAID` both
+    proceed. Confirmed via AskUserQuestion: (a) zero payment still blocks it, partial is enough;
+    (b) the CURRENT year's eligibility gate (for the earlier Verify step — zero balance + no failing
+    grades) is unchanged, this only loosens the LAST step
+  - Nothing is written off — the outstanding balance for the new school year keeps existing in
+    `fee_items`/`payments` exactly as before and still shows on the Accounts page; only the *promotion
+    gate* changed, not the ledger
+  - `AdminEnrollment.jsx` UI updated to match: shows the payment form whenever there's a balance
+    (so admin can keep collecting), and separately shows "Issue Certificate of Matriculation" whenever
+    status isn't `PENDING_PAYMENT` — with an inline warning naming the outstanding balance when
+    issuing while still partially paid. Previously these two were mutually exclusive (one or the
+    other, gated on `FULLY_PAID`)
+  - Verify: curled a `PENDING_PAYMENT` student's issue-certificate attempt (still rejected — "at least
+    a partial payment... required"), then added a small payment and confirmed it then succeeded;
+    curled the full pipeline for a `PARTIALLY_PAID` student (STU-000001, ₱12,800 owing) and confirmed
+    `class_id` flipped to the next grade's class *and* the ₱12,800 balance is still fully intact when
+    queried for that school year (nothing written off); in the browser, ran a fresh student
+    (STU-000008, Ricardo Reyes) through the real UI with a partial payment and confirmed the same
+    result end-to-end — pipeline shows "Certificate Issued — Enrolled" and the student's own record
+    shows Grade 2
+
+- [x] **Task AK: "View Account" Link on Ineligible-for-Promotion Banner**
+  - When "Not yet eligible" is showing because of an outstanding CURRENT-year balance,
+    `AdminEnrollment.jsx` now also shows a note ("Admin/Cashier/Registrar: record the missing payment
+    on the student's Account...") and a "View Account" button that jumps straight to
+    `/admin/accounts?student=<id>` — the same deep-link pattern the Students page already uses. Only
+    shown when `balance > 0` (a failing-grades-only block wouldn't be solved by visiting Accounts)
+  - Verify: selected a student with a ₱12,668 current-year balance, confirmed the note + button
+    appear, clicked it, and confirmed it landed on `/admin/accounts?student=STU-000013` with that
+    student's account already loaded
+
+- [x] **Task AL: Editable Next-Year SOA (Parent-Requested Corrections)**
+  - Fills a real gap the user described: after Assess generates the incoming grade's SOA, a parent is
+    supposed to review the printed copy before paying — but there was previously no way to actually
+    correct a line item if they flagged something wrong. New `POST/PATCH/DELETE
+    /accounts/students/:studentId/fee-items[/:feeItemId]` (accounts.js) — add, edit (fee_type/amount/
+    description), or remove one fee item; each returns the recomputed account so
+    `total_assessed`/balance/status stay live. Not restricted to a particular enrollment stage or
+    school year at the API level (a UI concern only) — editing after a payment is already recorded
+    just changes the resulting balance, nothing is silently lost
+  - `AdminEnrollment.jsx`: new itemized, editable "Statement of Account" card shown during BOTH the
+    ASSESSED and PRINTED stages (previously the SOA's line items weren't visible anywhere on this page
+    at all, only summary totals during PRINTED) — inline Edit/Remove per row, "+ Add Item" form,
+    recalculated Total Assessed. This is now the actual workflow: Verified → Assess (generates SOA,
+    editable here) → parent reviews the printed copy offline → if a correction is needed, admin edits
+    it right here → pay → Issue Certificate
+  - Verify: curled all three operations directly (edited Books' amount, added a Field Trip Fee item,
+    removed Notebooks & Supplies — confirmed `total_assessed` recalculated correctly each time); in the
+    browser, opened the new SOA card at the ASSESSED stage, edited an item's amount through the actual
+    UI, and confirmed the change persisted via a direct query; advanced the same student to PRINTED
+    and confirmed the same editable card (with the correction still applied) appears there too,
+    alongside the existing payment form and Issue Certificate button
+
+- [x] **Task AM: Balance Never Goes Negative**
+  - Task AL's fee-item editing made this a real, reachable case: editing a fee item down (or removing
+    one) after a payment already covers the *old*, higher total would leave `total_assessed < total_paid`
+    — an overpayment, however it happens, produces the same shape of problem. Fixed once in
+    `computeStatus()` (`backend/src/lib/account.js`, the single shared helper every balance
+    computation already goes through) by clamping with `Math.max(0, ...)` — the excess isn't tracked
+    as a credit, it just reads as ₱0 owing
+    Fixing it there means every consumer got the fix for free: `getStudentAccount`
+    (admin/student account views, Enrollment page, SOA/Report Card printables) and the bulk
+    per-student summaries in `accounts.js`/`admin.js` (Accounts page, Students page)
+  - Verify: recorded a deliberate ₱50,000 payment against a ₱22,800 assessment — balance read ₱0 (not
+    -₱27,200), status `FULLY_PAID`; then removed a ₱15,000 fee item on top of that (assessed dropped
+    to ₱7,800, still far below the ₱50,000 paid) and balance still correctly read ₱0, not negative;
+    reseeded afterward to clear the deliberately-extreme test data
+
+- [x] **Task AN: Actual Print Preview for the Incoming-Grade Assessment**
+  - Real gap: "Mark as Printed for Parent" only ever flipped an enrollment status flag — nothing was
+    actually printable. `StatementOfAccount.jsx` (Task AH) also only ever showed the *current* school
+    year, so even the existing SOA printable couldn't show an incoming-grade assessment
+  - `StatementOfAccount.jsx` now reads an optional `?school_year=` query param and passes it through
+    to `getAccount`; `AdminEnrollment.jsx` gained a "Print Preview" button (next to "+ Add Item" on the
+    new SOA card) that opens `/admin/students/:id/soa?school_year=<enrollment.school_year>` in a new
+    tab. Also added `?student=` deep-link support to `AdminEnrollment.jsx` (matching Accounts/Students)
+    so the printable page's Back link can return to the right student instead of losing the selection
+  - **Bug found and fixed while verifying this**: the printed incoming-grade SOA showed the student's
+    *current* grade/section/adviser (Grade 1, Ms. Ana Gonzales), not the grade they're being promoted
+    into (Grade 2, Mr. Carlos Ramos) — because `class_id` doesn't actually move until the certificate
+    is issued, and `getStudentAccount()` was deriving grade/section/adviser from the student's current
+    class regardless of which school year's account was being requested. Fixed in `account.js`: when
+    an `enrollments` row exists for the requested school year, look up the *incoming* class (same
+    section letter, whichever class that already is) instead of the student's current one. Current-
+    year lookups are completely unaffected (no enrollments row ever exists for the current year)
+  - Verify: curled the incoming-year account (now correctly returns Grade 2 / Mr. Carlos Ramos) versus
+    the current-year account for the same student (still correctly Grade 1 / Ms. Ana Gonzales); in the
+    browser, opened the printable page at `?school_year=2026-2027` and confirmed it shows "Grade 2 — A"
+    and the right adviser, confirmed the Back link returns to `/admin/enrollment?student=<id>`, and
+    confirmed the plain current-year SOA and the Report Card page are both unaffected by the change
+

@@ -9,7 +9,7 @@ const STRINGS = {
   en: {
     dashboard: 'Dashboard', teachers: 'Teachers', subjects: 'Subjects', schedules: 'Schedules', students: 'Students',
     import_roster: 'Import Roster', data_export: 'Data Export', accounts: 'Accounts',
-    enrollment: 'Enrollment', attendance: 'Attendance', grades: 'Grades',
+    enrollment: 'Enrollment', attendance: 'Attendance', grades: 'Grades', audit_log: 'Audit Log',
     my_grades: 'My Grades', my_attendance: 'My Attendance', my_schedule: 'My Schedule', my_account: 'My Account',
     school_portal_login: 'School Portal Login', email: 'Email', password: 'Password',
     log_in: 'Log In', signing_in: 'Signing in…', log_out: 'Log out',
@@ -25,7 +25,7 @@ const STRINGS = {
   tl: {
     dashboard: 'Dashboard', teachers: 'Mga Guro', subjects: 'Mga Asignatura', schedules: 'Mga Iskedyul', students: 'Mga Mag-aaral',
     import_roster: 'I-import ang Listahan', data_export: 'I-export ang Data', accounts: 'Mga Account',
-    enrollment: 'Pagpapatala', attendance: 'Pagdalo', grades: 'Mga Marka',
+    enrollment: 'Pagpapatala', attendance: 'Pagdalo', grades: 'Mga Marka', audit_log: 'Audit Log',
     my_grades: 'Aking mga Marka', my_attendance: 'Aking Pagdalo', my_schedule: 'Aking Iskedyul', my_account: 'Aking Account',
     school_portal_login: 'Pag-login sa School Portal', email: 'Email', password: 'Password',
     log_in: 'Mag-log In', signing_in: 'Nag-lo-log in…', log_out: 'Mag-log Out',

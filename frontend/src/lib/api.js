@@ -37,6 +37,7 @@ export const api = {
   listStudents: token => request('/admin/students', { token }),
   deleteStudent: (token, studentId) => request(`/admin/students/${studentId}`, { method: 'DELETE', token }),
   getStudentGrades: (token, studentId) => request(`/admin/students/${studentId}/grades`, { token }),
+  getAuditLogs: token => request('/admin/audit-logs', { token }),
   attendanceReport: token => request('/admin/reports/attendance', { token }),
   gradesReport: token => request('/admin/reports/grades', { token }),
   exportUrl: (table, params = {}) => {
@@ -49,6 +50,8 @@ export const api = {
   getAttendance: (token, classId, date) => request(`/teacher/classes/${classId}/attendance?date=${date}`, { token }),
   markAttendance: (token, classId, date, records) =>
     request(`/teacher/classes/${classId}/attendance`, { method: 'POST', token, body: { date, records } }),
+  getClassGrades: (token, classId, subject, gradingPeriod) =>
+    request(`/teacher/classes/${classId}/grades?subject=${encodeURIComponent(subject)}&grading_period=${encodeURIComponent(gradingPeriod)}`, { token }),
   enterGrades: (token, classId, subject, grading_period, records) =>
     request(`/teacher/classes/${classId}/grades`, { method: 'POST', token, body: { subject, grading_period, records } }),
 
@@ -64,6 +67,12 @@ export const api = {
     request(`/accounts/students/${studentId}${schoolYear ? `?school_year=${schoolYear}` : ''}`, { token }),
   recordPayment: (token, studentId, data) =>
     request(`/accounts/students/${studentId}/payments`, { method: 'POST', token, body: data }),
+  addFeeItem: (token, studentId, data) =>
+    request(`/accounts/students/${studentId}/fee-items`, { method: 'POST', token, body: data }),
+  updateFeeItem: (token, studentId, feeItemId, data) =>
+    request(`/accounts/students/${studentId}/fee-items/${feeItemId}`, { method: 'PATCH', token, body: data }),
+  deleteFeeItem: (token, studentId, feeItemId) =>
+    request(`/accounts/students/${studentId}/fee-items/${feeItemId}`, { method: 'DELETE', token }),
 
   getEligibility: (token, studentId) => request(`/enrollment/${studentId}/eligibility`, { token }),
   getEnrollment: (token, studentId) => request(`/enrollment/${studentId}`, { token }),

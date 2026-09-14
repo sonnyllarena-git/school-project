@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import AccountView from '../../components/AccountView';
 import { useAuth } from '../../lib/AuthContext';
@@ -10,6 +10,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export default function AdminAccounts() {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState('');
@@ -98,6 +99,14 @@ export default function AdminAccounts() {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      {account && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button className="secondary" onClick={() => navigate(`/admin/students/${studentId}/soa`)}>
+            Print Preview
+          </button>
+        </div>
+      )}
 
       <AccountView account={account} />
 
