@@ -352,8 +352,8 @@ router.post('/teachers', async (req, res) => {
   try {
     await client.query('BEGIN');
     await client.query(
-      `INSERT INTO users (user_id, school_id, email, password_hash, role, name)
-       VALUES ($1, $2, $3, $4, 'TEACHER', $5)`,
+      `INSERT INTO users (user_id, school_id, email, password_hash, role, name, must_complete_setup)
+       VALUES ($1, $2, $3, $4, 'TEACHER', $5, true)`,
       [userId, req.user.school_id, email, hash, name]
     );
     await client.query(
@@ -379,7 +379,7 @@ router.post('/teachers', async (req, res) => {
 // until one is created here), hence the LEFT JOIN.
 router.get('/users', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT u.user_id, u.name, u.email, u.role, s.student_id, s.lrn
+    `SELECT u.user_id, u.name, u.email, u.role, u.must_complete_setup, s.student_id, s.lrn
      FROM users u
      LEFT JOIN students s ON s.user_id = u.user_id
      WHERE u.school_id = $1
@@ -434,8 +434,8 @@ router.post('/students', async (req, res) => {
   try {
     await client.query('BEGIN');
     await client.query(
-      `INSERT INTO users (user_id, school_id, email, password_hash, role, name)
-       VALUES ($1, $2, $3, $4, 'STUDENT', $5)`,
+      `INSERT INTO users (user_id, school_id, email, password_hash, role, name, must_complete_setup)
+       VALUES ($1, $2, $3, $4, 'STUDENT', $5, true)`,
       [userId, req.user.school_id, email.trim(), hash, name.trim()]
     );
     await client.query(
@@ -480,7 +480,10 @@ router.patch('/users/:userId/password', async (req, res) => {
   if (!rows[0]) return res.status(404).json({ error: 'user not found' });
 
   const hash = await bcrypt.hash(password, 10);
-  await pool.query('UPDATE users SET password_hash = $1 WHERE user_id = $2', [hash, req.params.userId]);
+  // Forces the user through change-password + security-questions setup on
+  // their next login with this temporary password, same as a brand new
+  // account — an admin-issued reset is effectively a new temporary password.
+  await pool.query('UPDATE users SET password_hash = $1, must_complete_setup = true WHERE user_id = $2', [hash, req.params.userId]);
   await pool.query(
     `INSERT INTO audit_logs (audit_id, school_id, user_id, action, table_affected, record_count, status)
      VALUES ($1, $2, $3, 'PASSWORD_RESET', 'users', 1, 'SUCCESS')`,

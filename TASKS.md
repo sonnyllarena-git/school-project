@@ -769,3 +769,42 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     the old removed routes (correctly redirect to /login rather than 404/blank) with no console or
     backend errors
 
+- [x] **Task AZ: First-Login Forced Setup + Security Questions + Forgot Password**
+  - Full requested workflow: first login on a temporary password forces a password change, then setting
+    up security questions, both stored server-side; a "Forgot password?" flow on the login page lets a
+    user reset their own password by answering those questions, no admin involvement needed
+  - Confirmed scope with the user before building: applies only to *new* accounts (Add Teacher/Add
+    Student's "Temporary Password", and any admin-issued password reset) — the existing seeded demo
+    accounts stay untouched so the login page's documented credentials keep working after every reseed
+  - Schema: `users.must_complete_setup` (default `false`; explicitly set `true` only where a temporary
+    password is actually issued) + new `security_questions` table (question text + bcrypt-hashed
+    answer, answers lowercased before hashing so matching isn't case-sensitive). Fixed catalog of 6
+    questions in `backend/src/lib/securityQuestions.js` (`REQUIRED_QUESTION_COUNT = 3`), same pattern as
+    `REQUIREMENT_TYPES`
+  - Backend: `POST /auth/login` now returns `must_complete_setup`; three new stateless forgot-password
+    endpoints (`/auth/forgot-password/start|verify|reset`) chained via short-lived, single-purpose JWTs
+    (`purpose: 'forgot-password'` then `'password-reset'`) instead of a server-side reset-session table;
+    `GET /auth/security-questions/catalog` (public — the question list itself isn't sensitive); new
+    `GET/POST /me/security-questions` (the POST is the actual "setup complete" signal, not the password
+    change — clears `must_complete_setup` regardless of whether this is initial setup or a later
+    voluntary update). `admin.js`'s teacher/student creation and admin-password-reset routes now set
+    `must_complete_setup = true`; `GET /admin/users` now surfaces the flag for the User Management table
+  - Frontend: `ProtectedRoute.jsx` redirects any authenticated request to `/setup-security` whenever the
+    flag is true, regardless of role, so it can't be dodged by navigating elsewhere; new
+    `SetupSecurity.jsx` (2-step wizard: change password via the existing `/me/password`, then pick 3
+    distinct questions from the catalog) and `ForgotPassword.jsx` (public, 3-step: email → answer
+    questions → set new password) pages; `AuthContext.jsx` gained `updateUser(patch)` so the completed
+    session updates client-side immediately, no re-login required; `HOME_BY_ROLE` extracted to
+    `lib/roleHome.js` so Login/SetupSecurity share it; User Management table shows a Setup
+    Pending/Complete pill per user
+  - Verify: curled the whole chain end-to-end (create teacher → login shows `must_complete_setup:true` →
+    change password → flag still true → set 3 questions → flag flips false; forgot-password start/wrong-
+    answer-rejected/correct-answer-case-insensitive/reset/re-login all correct; unknown email and
+    no-questions-on-file both correctly rejected with the same generic message). Then re-verified the
+    entire flow live in the browser end-to-end (new teacher account → forced redirect to
+    `/setup-security` → both wizard steps → landed on Teacher home with a synced session) and the full
+    forgot-password UI flow (start → questions → reset → re-login with new password, no setup re-
+    triggered); confirmed an admin-issued password reset flips a user to "Setup Pending" in User
+    Management and correctly re-forces the flow on next login. Reseeded afterward and confirmed all 4
+    documented demo logins still work with `must_complete_setup: false`, untouched by any of this
+

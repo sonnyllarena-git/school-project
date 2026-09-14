@@ -24,8 +24,21 @@ export function AuthProvider({ children }) {
     setSession(null);
   }, []);
 
+  // Merges a patch into session.user without a fresh login — used by the
+  // forced setup wizard so must_complete_setup flips to false in the
+  // client's session the moment the server confirms it, instead of
+  // requiring the user to log out and back in.
+  const updateUser = useCallback(patch => {
+    setSession(prev => {
+      if (!prev) return prev;
+      const nextUser = { ...prev.user, ...patch };
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return { ...prev, user: nextUser };
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ session, login, logout }}>
+    <AuthContext.Provider value={{ session, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

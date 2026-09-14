@@ -29,6 +29,12 @@ function toQueryString(params) {
 
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
+  getSecurityQuestionCatalog: () => request('/auth/security-questions/catalog'),
+  forgotPasswordStart: email => request('/auth/forgot-password/start', { method: 'POST', body: { email } }),
+  forgotPasswordVerify: (challengeToken, answers) =>
+    request('/auth/forgot-password/verify', { method: 'POST', body: { challenge_token: challengeToken, answers } }),
+  forgotPasswordReset: (resetToken, newPassword) =>
+    request('/auth/forgot-password/reset', { method: 'POST', body: { reset_token: resetToken, new_password: newPassword } }),
 
   getSchool: token => request('/admin/school', { token }),
   updateSchool: (token, fields) => request('/admin/school', { method: 'PATCH', token, body: fields }),
@@ -119,4 +125,6 @@ export const api = {
   changePassword: (token, current_password, new_password) =>
     request('/me/password', { method: 'PATCH', token, body: { current_password, new_password } }),
   updateNotifications: (token, prefs) => request('/me/notifications', { method: 'PATCH', token, body: prefs }),
+  getMySecurityQuestions: token => request('/me/security-questions', { token }),
+  setMySecurityQuestions: (token, questions) => request('/me/security-questions', { method: 'POST', token, body: { questions } }),
 };

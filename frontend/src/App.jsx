@@ -33,6 +33,8 @@ import GoodMoralCertificate from './pages/GoodMoralCertificate';
 import HonorableDismissal from './pages/HonorableDismissal';
 import TranscriptOfRecords from './pages/TranscriptOfRecords';
 import OfficialReceipt from './pages/OfficialReceipt';
+import SetupSecurity from './pages/SetupSecurity';
+import ForgotPassword from './pages/ForgotPassword';
 
 const ADMIN_REGISTRAR = ['ADMIN', 'REGISTRAR'];
 const ADMIN_CASHIER = ['ADMIN', 'CASHIER'];
@@ -46,6 +48,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/setup-security" element={<SetupSecurity />} />
           <Route path="/status" element={<StatusPage />} />
           <Route path="/legal/:doc" element={<LegalDoc />} />
 

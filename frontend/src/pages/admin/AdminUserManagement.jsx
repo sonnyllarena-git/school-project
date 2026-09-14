@@ -204,7 +204,7 @@ export default function AdminUserManagement() {
           Reset a user's password directly — no need for them to know their old one.
         </p>
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>LRN</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>LRN</th><th>Setup</th><th></th></tr></thead>
           <tbody>
             {users.map(u => (
               <tr key={u.user_id}>
@@ -212,6 +212,13 @@ export default function AdminUserManagement() {
                 <td>{u.email}</td>
                 <td><span className="pill" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>{ROLE_LABEL[u.role] || u.role}</span></td>
                 <td>{u.lrn || '—'}</td>
+                <td>
+                  {u.must_complete_setup ? (
+                    <span className="pill warn">Setup Pending</span>
+                  ) : (
+                    <span className="pill success">Complete</span>
+                  )}
+                </td>
                 <td>
                   {resettingUserId === u.user_id ? (
                     <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

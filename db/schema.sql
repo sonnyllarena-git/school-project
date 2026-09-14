@@ -8,9 +8,9 @@
 -- Re-runnable: drops and recreates everything. Fine for this bootstrap/demo
 -- phase (seed.js always repopulates from scratch); revisit before real data
 -- exists — this would then need real migrations instead of DROP + CREATE.
-DROP TABLE IF EXISTS messages, student_requirements, backups, audit_logs, enrollments,
-  payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects,
-  teachers, users, schools,
+DROP TABLE IF EXISTS security_questions, messages, student_requirements, backups, audit_logs,
+  enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects,
+  subjects, teachers, users, schools,
   student_guardians, guardians CASCADE; -- one-time cleanup of retired Parent-role tables
 
 CREATE TABLE schools (
@@ -40,7 +40,30 @@ CREATE TABLE users (
   -- provider integration). See LESSONS.md.
   notify_email  BOOLEAN NOT NULL DEFAULT true,
   notify_sms    BOOLEAN NOT NULL DEFAULT false,
+  -- True only for accounts that still owe a first-time setup: a brand new
+  -- account (Add Teacher/Add Student's "Temporary Password") or one whose
+  -- password an admin just reset. Cleared once the user has both changed
+  -- their password AND set up their security questions — see
+  -- POST /me/security-questions, the actual completion signal (changing the
+  -- password alone isn't enough; that route alone doesn't clear this).
+  -- Existing/seeded demo accounts default to false so the documented login
+  -- credentials on the login page keep working after every reseed.
+  must_complete_setup BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Answers are hashed the same way passwords are (bcrypt) — treated as a
+-- second credential, not stored/compared in plain text. Question text is
+-- duplicated per row (not a foreign key into a catalog table) since the
+-- fixed catalog lives in code (backend/src/lib/securityQuestions.js), not
+-- the database — matches the REQUIREMENT_TYPES precedent.
+CREATE TABLE security_questions (
+  question_id   TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(user_id),
+  question      TEXT NOT NULL,
+  answer_hash   TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, question)
 );
 
 CREATE TABLE teachers (

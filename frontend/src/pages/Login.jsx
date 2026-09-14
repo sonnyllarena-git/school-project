@@ -1,16 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { useLanguage } from '../lib/i18n';
+import { HOME_BY_ROLE } from '../lib/roleHome';
 import Footer from '../components/Footer';
-
-const HOME_BY_ROLE = {
-  ADMIN: '/admin',
-  REGISTRAR: '/registrar',
-  CASHIER: '/cashier',
-  TEACHER: '/teacher/attendance',
-  STUDENT: '/student',
-};
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,7 +20,7 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(email, password);
-      navigate(HOME_BY_ROLE[user.role] || '/login');
+      navigate(user.must_complete_setup ? '/setup-security' : (HOME_BY_ROLE[user.role] || '/login'));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -62,6 +55,9 @@ export default function Login() {
           />
           <button type="submit" disabled={loading}>{loading ? t('signing_in') : t('log_in')}</button>
         </form>
+        <div style={{ textAlign: 'center', marginTop: 10 }}>
+          <Link to="/forgot-password" style={{ fontSize: 13 }}>Forgot password?</Link>
+        </div>
         <div className="demo-creds">
           Demo accounts: <code>admin@stmichaels.ph / Admin@2025</code>,{' '}
           <code>registrar@stmichaels.ph / Registrar@2025</code>,{' '}

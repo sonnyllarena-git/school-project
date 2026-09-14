@@ -9,7 +9,7 @@ const RETENTION_DAYS = 30;
 // Core content tables — excludes audit_logs/backups themselves (operational
 // logs, not school records) to keep backups focused on what a school would
 // actually need restored.
-const TABLES = ['schools', 'users', 'teachers', 'subjects', 'teacher_subjects', 'classes', 'students', 'attendance', 'grades', 'fee_items', 'payments', 'enrollments', 'student_requirements', 'messages'];
+const TABLES = ['schools', 'users', 'teachers', 'subjects', 'teacher_subjects', 'classes', 'students', 'attendance', 'grades', 'fee_items', 'payments', 'enrollments', 'student_requirements', 'messages', 'security_questions'];
 
 async function dumpTables() {
   const dump = {};

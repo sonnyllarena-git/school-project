@@ -98,7 +98,7 @@ async function main() {
   await client.connect();
 
   await client.query(
-    'TRUNCATE TABLE messages, student_requirements, audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects, teachers, users, schools RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE security_questions, messages, student_requirements, audit_logs, backups, enrollments, payments, fee_items, grades, attendance, students, classes, teacher_subjects, subjects, teachers, users, schools RESTART IDENTITY CASCADE'
   );
 
   await client.query(
