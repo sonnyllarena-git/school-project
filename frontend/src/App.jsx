@@ -70,11 +70,11 @@ export default function App() {
           <Route path="/admin/students/:studentId/transcript" element={<ProtectedRoute role={ADMIN_REGISTRAR}><TranscriptOfRecords /></ProtectedRoute>} />
           <Route path="/admin/audit-log" element={<ProtectedRoute role="ADMIN"><AdminAuditLog /></ProtectedRoute>} />
 
-          <Route path="/registrar" element={<ProtectedRoute role="REGISTRAR"><RegistrarDashboard /></ProtectedRoute>} />
+          <Route path="/registrar" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarDashboard /></ProtectedRoute>} />
           <Route path="/registrar/requirements" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarRequirements /></ProtectedRoute>} />
           <Route path="/registrar/documents" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarDocuments /></ProtectedRoute>} />
 
-          <Route path="/cashier" element={<ProtectedRoute role="CASHIER"><CashierDashboard /></ProtectedRoute>} />
+          <Route path="/cashier" element={<ProtectedRoute role={ADMIN_CASHIER}><CashierDashboard /></ProtectedRoute>} />
 
           <Route path="/messages" element={<ProtectedRoute role={EVERYONE}><Messages /></ProtectedRoute>} />
 

@@ -26,6 +26,8 @@ const NAV_BY_ROLE = {
     { to: '/admin/accounts', labelKey: 'accounts', icon: BanknotesIcon },
     { to: '/admin/accounting', labelKey: 'accounting', icon: CalculatorIcon },
     { to: '/admin/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
+    { to: '/registrar/requirements', labelKey: 'requirements', icon: ClipboardDocumentListIcon },
+    { to: '/registrar/documents', labelKey: 'documents', icon: DocumentTextIcon },
     { to: '/admin/audit-log', labelKey: 'audit_log', icon: DocumentMagnifyingGlassIcon },
     { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
   ],
