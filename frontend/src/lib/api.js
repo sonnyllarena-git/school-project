@@ -22,6 +22,11 @@ async function request(path, { method = 'GET', body, token, raw } = {}) {
   return data;
 }
 
+function toQueryString(params) {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString();
+  return qs ? `?${qs}` : '';
+}
+
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
 
@@ -63,6 +68,10 @@ export const api = {
   mySchedule: token => request('/student/schedule', { token }),
 
   listAccountStudents: token => request('/accounts/students', { token }),
+  getLedger: (token, filters = {}) =>
+    request(`/accounts/ledger${toQueryString(filters)}`, { token }),
+  getAccountingSummary: (token, filters = {}) =>
+    request(`/accounts/summary${toQueryString(filters)}`, { token }),
   getAccount: (token, studentId, schoolYear) =>
     request(`/accounts/students/${studentId}${schoolYear ? `?school_year=${schoolYear}` : ''}`, { token }),
   recordPayment: (token, studentId, data) =>

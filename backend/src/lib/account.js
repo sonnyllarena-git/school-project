@@ -54,6 +54,20 @@ async function getClassInfo(studentId, schoolYear) {
   return rows;
 }
 
+// Once a certificate is issued for the next school year, THAT year is the
+// student's live financial obligation — the outgoing year is done and
+// (being fully paid, or the promotion gate wouldn't have let them get here)
+// would otherwise permanently mask the new year's real balance, since
+// CURRENT_SCHOOL_YEAR is a fixed constant in this mock system and never
+// rolls over. Everyone else's active year is just CURRENT_SCHOOL_YEAR.
+async function getActiveSchoolYear(studentId) {
+  const { rows } = await pool.query(
+    `SELECT school_year FROM enrollments WHERE student_id = $1 AND status = 'CERTIFICATE_ISSUED' ORDER BY school_year DESC LIMIT 1`,
+    [studentId]
+  );
+  return rows[0]?.school_year || CURRENT_SCHOOL_YEAR;
+}
+
 async function getStudentAccount(studentId, schoolYear = CURRENT_SCHOOL_YEAR) {
   const [{ rows: feeItems }, { rows: payments }, classInfo] = await Promise.all([
     pool.query(
@@ -80,4 +94,4 @@ async function getStudentAccount(studentId, schoolYear = CURRENT_SCHOOL_YEAR) {
   };
 }
 
-module.exports = { getStudentAccount, computeStatus, CURRENT_SCHOOL_YEAR };
+module.exports = { getStudentAccount, computeStatus, getActiveSchoolYear, CURRENT_SCHOOL_YEAR };

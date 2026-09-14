@@ -4,7 +4,7 @@ import {
   Squares2X2Icon, UserGroupIcon, AcademicCapIcon, ArrowUpTrayIcon, ArrowDownTrayIcon,
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
   Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon, ClockIcon,
-  DocumentMagnifyingGlassIcon,
+  DocumentMagnifyingGlassIcon, CalculatorIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
 import { useOfflineSync } from '../lib/useOfflineSync';
@@ -22,6 +22,7 @@ const NAV_BY_ROLE = {
     { to: '/admin/import', labelKey: 'import_roster', icon: ArrowUpTrayIcon },
     { to: '/admin/export', labelKey: 'data_export', icon: ArrowDownTrayIcon },
     { to: '/admin/accounts', labelKey: 'accounts', icon: BanknotesIcon },
+    { to: '/admin/accounting', labelKey: 'accounting', icon: CalculatorIcon },
     { to: '/admin/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
     { to: '/admin/audit-log', labelKey: 'audit_log', icon: DocumentMagnifyingGlassIcon },
   ],

@@ -34,16 +34,27 @@ router.get('/audit-logs', async (req, res) => {
 // instead of the raw `students.status` administrative flag, per the roster
 // page's "what's their enrollment/payment standing" use case.
 router.get('/students', async (req, res) => {
+  // Each student's own active school year — CURRENT_SCHOOL_YEAR, unless
+  // they already have a certificate issued for the next year, in which case
+  // that's their live financial obligation now (see getActiveSchoolYear in
+  // lib/account.js). Otherwise a promoted student would show "Fully Paid"
+  // forever off their completed, outgoing year.
   const { rows } = await pool.query(
     `SELECT s.student_id, s.lrn, s.name, s.date_of_birth, s.gender, s.class_id, s.status,
             c.grade_level, c.section,
             COALESCE(fi.total_assessed, 0) AS total_assessed, COALESCE(p.total_paid, 0) AS total_paid
      FROM students s
      LEFT JOIN classes c ON c.class_id = s.class_id
-     LEFT JOIN (SELECT student_id, SUM(amount) AS total_assessed FROM fee_items WHERE school_year = $2 GROUP BY student_id) fi
-       ON fi.student_id = s.student_id
-     LEFT JOIN (SELECT student_id, SUM(amount) AS total_paid FROM payments WHERE school_year = $2 GROUP BY student_id) p
-       ON p.student_id = s.student_id
+     LEFT JOIN LATERAL (
+       SELECT COALESCE(
+         (SELECT school_year FROM enrollments e WHERE e.student_id = s.student_id AND e.status = 'CERTIFICATE_ISSUED' ORDER BY school_year DESC LIMIT 1),
+         $2
+       ) AS school_year
+     ) effective ON true
+     LEFT JOIN (SELECT student_id, school_year, SUM(amount) AS total_assessed FROM fee_items GROUP BY student_id, school_year) fi
+       ON fi.student_id = s.student_id AND fi.school_year = effective.school_year
+     LEFT JOIN (SELECT student_id, school_year, SUM(amount) AS total_paid FROM payments GROUP BY student_id, school_year) p
+       ON p.student_id = s.student_id AND p.school_year = effective.school_year
      WHERE s.school_id = $1
      ORDER BY c.grade_level, c.section, s.name`,
     [req.user.school_id, CURRENT_SCHOOL_YEAR]
@@ -518,6 +529,36 @@ const EXPORTABLE = {
                      g.second_period_exam, g.third_period_exam, g.formative_score, g.final_grade
               FROM grades g JOIN classes c ON c.class_id = g.class_id
               WHERE ${clauses.join(' AND ')} ORDER BY g.class_id, g.student_id`,
+        params,
+      };
+    },
+  },
+  payments: {
+    columns: ['payment_id', 'student_id', 'school_year', 'amount', 'payment_date', 'method', 'reference_no', 'notes'],
+    query: (schoolId, { school_year, from, to }) => {
+      const clauses = ['s.school_id = $1'];
+      const params = [schoolId];
+      if (school_year) { params.push(school_year); clauses.push(`p.school_year = $${params.length}`); }
+      if (from) { params.push(from); clauses.push(`p.payment_date >= $${params.length}`); }
+      if (to) { params.push(to); clauses.push(`p.payment_date <= $${params.length}`); }
+      return {
+        sql: `SELECT p.payment_id, p.student_id, p.school_year, p.amount, p.payment_date, p.method, p.reference_no, p.notes
+              FROM payments p JOIN students s ON s.student_id = p.student_id
+              WHERE ${clauses.join(' AND ')} ORDER BY p.payment_date, p.student_id`,
+        params,
+      };
+    },
+  },
+  fee_items: {
+    columns: ['fee_item_id', 'student_id', 'school_year', 'fee_type', 'amount', 'description'],
+    query: (schoolId, { school_year }) => {
+      const clauses = ['s.school_id = $1'];
+      const params = [schoolId];
+      if (school_year) { params.push(school_year); clauses.push(`fi.school_year = $${params.length}`); }
+      return {
+        sql: `SELECT fi.fee_item_id, fi.student_id, fi.school_year, fi.fee_type, fi.amount, fi.description
+              FROM fee_items fi JOIN students s ON s.student_id = fi.student_id
+              WHERE ${clauses.join(' AND ')} ORDER BY fi.school_year, fi.student_id`,
         params,
       };
     },

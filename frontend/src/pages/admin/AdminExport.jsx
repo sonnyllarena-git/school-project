@@ -3,7 +3,7 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const TABLES = ['students', 'teachers', 'attendance', 'grades'];
+const TABLES = ['students', 'teachers', 'attendance', 'grades', 'payments', 'fee_items'];
 
 export default function AdminExport() {
   const { session } = useAuth();

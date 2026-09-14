@@ -36,6 +36,30 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Every (first, surname) combo up front, shuffled once, then handed out one
+// per student — guarantees no two students share a full name (12 first names
+// x 20 surnames = 240 combos per gender, only 75 needed) instead of the old
+// modulo indexing, which cycled through just 12 first names and produced the
+// same "Angela Hernandez" etc. multiple times across 150 students.
+function buildNamePairs(firstNames) {
+  const pairs = [];
+  for (const first of firstNames) {
+    for (const last of SURNAMES) pairs.push([first, last]);
+  }
+  return shuffle(pairs);
+}
+const MALE_NAME_PAIRS = buildNamePairs(MALE_FIRST);
+const FEMALE_NAME_PAIRS = buildNamePairs(FEMALE_FIRST);
+
 function pad(n, width) {
   return String(n).padStart(width, '0');
 }
@@ -166,6 +190,8 @@ async function main() {
 
   const studentUserRows = [];
   let studentSeq = 1;
+  let maleSeq = 0;
+  let femaleSeq = 0;
   for (let grade = 1; grade <= 6; grade++) {
     // 25 students per grade split 13/12 across the two sections — same flat
     // LRN/student_id sequence as before (STU-000001..STU-000150), just now
@@ -180,8 +206,7 @@ async function main() {
       const studentId = `STU-${pad(studentSeq, 6)}`;
       const studentUserId = `USR-STU-${pad(studentSeq, 6)}`;
       const isMale = studentSeq % 2 === 0;
-      const first = isMale ? MALE_FIRST[studentSeq % MALE_FIRST.length] : FEMALE_FIRST[studentSeq % FEMALE_FIRST.length];
-      const last = SURNAMES[(studentSeq * 7) % SURNAMES.length];
+      const [first, last] = isMale ? MALE_NAME_PAIRS[maleSeq++] : FEMALE_NAME_PAIRS[femaleSeq++];
       const birthYear = 2025 - (5 + grade);
       const dob = `${birthYear}-${pad(randInt(1, 12), 2)}-${pad(randInt(1, 28), 2)}`;
 
