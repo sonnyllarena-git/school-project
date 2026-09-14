@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { XMarkIcon, MoonIcon, SunIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-import { useTheme } from '../lib/useTheme';
+import { useTheme, useUITheme } from '../lib/useTheme';
 import { useLanguage } from '../lib/i18n';
 import { api } from '../lib/api';
 
 export default function SettingsModal({ user, token, onClose, onLogout }) {
   const { theme, toggleTheme } = useTheme();
+  const { uiTheme, setUITheme } = useUITheme();
   const { lang, setLang, t } = useLanguage();
 
   const [notifyEmail, setNotifyEmail] = useState(true);
@@ -85,6 +86,34 @@ export default function SettingsModal({ user, token, onClose, onLogout }) {
           <button className="secondary icon-btn" onClick={toggleTheme}>
             {theme === 'dark' ? <MoonIcon width={18} /> : <SunIcon width={18} />}
           </button>
+        </div>
+
+        <div className="modal-section">
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{t('ui_theme')}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{t('ui_theme_desc')}</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <button
+              className={uiTheme === 'modern' ? 'secondary' : 'ghost'}
+              style={{ padding: '5px 12px', fontSize: 12 }}
+              onClick={() => setUITheme('modern')}
+            >
+              {t('ui_theme_modern')}
+            </button>
+            <button
+              className={uiTheme === 'win95' ? 'secondary' : 'ghost'}
+              style={{ padding: '5px 12px', fontSize: 12 }}
+              onClick={() => setUITheme('win95')}
+            >
+              {t('ui_theme_win95')}
+            </button>
+            <button
+              className={uiTheme === 'win2000' ? 'secondary' : 'ghost'}
+              style={{ padding: '5px 12px', fontSize: 12 }}
+              onClick={() => setUITheme('win2000')}
+            >
+              {t('ui_theme_win2000')}
+            </button>
+          </div>
         </div>
 
         <div className="modal-section settings-row">

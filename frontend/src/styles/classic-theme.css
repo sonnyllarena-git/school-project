@@ -1,0 +1,202 @@
+/* ============================================================
+   Windows Classic UI themes — demo "skins" toggled from Settings.
+   Scoped entirely under [data-ui-theme="win95"] / "win2000" set on
+   <html> by useUITheme(); everything else (index.css) is untouched
+   when the attribute is absent ("modern", the default).
+   ============================================================ */
+
+:root[data-ui-theme='win95'],
+:root[data-ui-theme='win2000'] {
+  --radius: 0px;
+  --shadow: none;
+  --bg: #008080;
+  --card: #c0c0c0;
+  --text: #000000;
+  --text-muted: #3a3a3a;
+  --border: #808080;
+  --accent: #000080;
+  --accent-soft: #dcdcdc;
+  --success: #006400;
+  --success-soft: #dcdcdc;
+  --warn: #808000;
+  --warn-soft: #dcdcdc;
+  --danger: #800000;
+  --danger-soft: #dcdcdc;
+  --navy: #000080;
+  --navy-light: #0000a8;
+  --navy-lighter: #1084d0;
+  font-family: Tahoma, 'MS Sans Serif', Geneva, sans-serif;
+}
+
+:root[data-ui-theme='win2000'] {
+  --bg: #3a6ea5;
+  --card: #ece9d8;
+  --border: #aca899;
+  --accent-soft: #d4d0c8;
+  --success-soft: #d4d0c8;
+  --warn-soft: #d4d0c8;
+  --danger-soft: #d4d0c8;
+  --navy: #0a246a;
+  --navy-light: #163a7a;
+  --navy-lighter: #a6caf0;
+}
+
+[data-ui-theme='win95'] *,
+[data-ui-theme='win2000'] * {
+  border-radius: 0 !important;
+  box-shadow: none;
+}
+
+[data-ui-theme='win95'] body,
+[data-ui-theme='win2000'] body {
+  font-size: 12px;
+}
+
+/* Raised 3D bevel (buttons, chunky controls) */
+[data-ui-theme='win95'] button,
+[data-ui-theme='win2000'] button {
+  background: var(--card);
+  color: #000;
+  font-weight: 400;
+  padding: 4px 14px;
+  border: 2px solid;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf !important;
+}
+[data-ui-theme='win95'] button:hover,
+[data-ui-theme='win2000'] button:hover { opacity: 1; }
+[data-ui-theme='win95'] button:active:not(:disabled),
+[data-ui-theme='win2000'] button:active:not(:disabled) {
+  border-color: #000000 #ffffff #ffffff #000000;
+  box-shadow: inset 1px 1px 0 #808080 !important;
+  padding: 5px 13px 3px 15px;
+}
+[data-ui-theme='win95'] button.secondary,
+[data-ui-theme='win95'] button.ghost,
+[data-ui-theme='win95'] button.danger,
+[data-ui-theme='win2000'] button.secondary,
+[data-ui-theme='win2000'] button.ghost,
+[data-ui-theme='win2000'] button.danger {
+  background: var(--card);
+  color: #000;
+}
+[data-ui-theme='win95'] button:disabled,
+[data-ui-theme='win2000'] button:disabled { color: #808080; opacity: 1; }
+
+/* Sunken 3D bevel (text fields, selects) */
+[data-ui-theme='win95'] input,
+[data-ui-theme='win95'] select,
+[data-ui-theme='win2000'] input,
+[data-ui-theme='win2000'] select {
+  background: #fff;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  box-shadow: inset 1px 1px 0 #000000 !important;
+}
+[data-ui-theme='win95'] input:focus,
+[data-ui-theme='win95'] select:focus,
+[data-ui-theme='win2000'] input:focus,
+[data-ui-theme='win2000'] select:focus { outline: 1px dotted #000; }
+
+[data-ui-theme='win95'] label,
+[data-ui-theme='win2000'] label { color: #000; font-weight: 400; }
+
+/* Panels look like sunken/raised group boxes */
+[data-ui-theme='win95'] .card,
+[data-ui-theme='win2000'] .card {
+  background: var(--card);
+  padding: 12px;
+  border: 2px solid;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf !important;
+}
+
+/* Sidebar as a classic gray raised panel + titlebar brand strip */
+[data-ui-theme='win95'] .sidebar,
+[data-ui-theme='win2000'] .sidebar {
+  background: var(--card);
+  color: #000;
+  border-right: 2px solid #808080;
+}
+[data-ui-theme='win95'] .sidebar-brand,
+[data-ui-theme='win2000'] .sidebar-brand {
+  background: linear-gradient(90deg, var(--navy), var(--navy-lighter));
+  color: #fff;
+  margin: -20px -14px 14px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+[data-ui-theme='win95'] .sidebar-brand .badge,
+[data-ui-theme='win2000'] .sidebar-brand .badge {
+  background: var(--card);
+  color: var(--navy);
+  border: 1px solid #fff;
+}
+[data-ui-theme='win95'] .sidebar a,
+[data-ui-theme='win2000'] .sidebar a {
+  color: #000;
+  font-weight: 400;
+}
+[data-ui-theme='win95'] .sidebar a:hover,
+[data-ui-theme='win95'] .sidebar a.active,
+[data-ui-theme='win2000'] .sidebar a:hover,
+[data-ui-theme='win2000'] .sidebar a.active {
+  background: var(--navy);
+  color: #fff;
+}
+
+[data-ui-theme='win95'] .topbar,
+[data-ui-theme='win2000'] .topbar {
+  background: var(--card);
+  border-bottom: 2px solid #808080;
+}
+
+/* Modal window chrome */
+[data-ui-theme='win95'] .modal-panel,
+[data-ui-theme='win2000'] .modal-panel {
+  background: var(--card);
+  border: 2px solid;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf !important;
+}
+[data-ui-theme='win95'] .modal-header,
+[data-ui-theme='win2000'] .modal-header {
+  background: linear-gradient(90deg, var(--navy), var(--navy-lighter));
+  color: #fff;
+  border-bottom: none;
+}
+[data-ui-theme='win95'] .modal-header h3,
+[data-ui-theme='win2000'] .modal-header h3 { color: #fff; font-size: 13px; }
+[data-ui-theme='win95'] .modal-header button,
+[data-ui-theme='win2000'] .modal-header button {
+  padding: 1px 6px;
+  min-width: 20px;
+}
+
+/* Tables as classic grids */
+[data-ui-theme='win95'] table,
+[data-ui-theme='win2000'] table { font-size: 12px; }
+[data-ui-theme='win95'] th,
+[data-ui-theme='win2000'] th {
+  background: var(--card);
+  border: 1px solid #808080;
+  text-transform: none;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #fff !important;
+}
+[data-ui-theme='win95'] td,
+[data-ui-theme='win2000'] td { border: 1px solid #808080; }
+[data-ui-theme='win95'] tr.row-hover:hover td,
+[data-ui-theme='win2000'] tr.row-hover:hover td { background: var(--navy) !important; color: #fff; }
+
+[data-ui-theme='win95'] .pill,
+[data-ui-theme='win2000'] .pill { border: 1px solid #808080; }
+
+[data-ui-theme='win95'] .login-page,
+[data-ui-theme='win2000'] .login-page { background: var(--bg); }
+[data-ui-theme='win95'] .login-card,
+[data-ui-theme='win2000'] .login-card {
+  background: var(--card);
+  border: 2px solid;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf !important;
+}
