@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  Squares2X2Icon, UserGroupIcon, AcademicCapIcon, ArrowUpTrayIcon, ArrowDownTrayIcon,
+  Squares2X2Icon, UserGroupIcon, AcademicCapIcon,
   ClipboardDocumentCheckIcon, PencilSquareIcon, ChartBarIcon, CalendarDaysIcon,
   Cog6ToothIcon, BanknotesIcon, ArrowUpCircleIcon, BookOpenIcon, ClockIcon,
-  DocumentMagnifyingGlassIcon, CalculatorIcon, UsersIcon,
+  CalculatorIcon, AdjustmentsHorizontalIcon,
   ClipboardDocumentListIcon, DocumentTextIcon, ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../lib/AuthContext';
@@ -16,20 +16,17 @@ import SettingsModal from './SettingsModal';
 const NAV_BY_ROLE = {
   ADMIN: [
     { to: '/admin', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
-    { to: '/admin/users', labelKey: 'user_management', icon: UsersIcon },
     { to: '/admin/teachers', labelKey: 'teachers', icon: UserGroupIcon },
     { to: '/admin/subjects', labelKey: 'subjects', icon: BookOpenIcon },
     { to: '/admin/schedules', labelKey: 'schedules', icon: ClockIcon },
     { to: '/admin/students', labelKey: 'students', icon: AcademicCapIcon },
-    { to: '/admin/import', labelKey: 'import_roster', icon: ArrowUpTrayIcon },
-    { to: '/admin/export', labelKey: 'data_export', icon: ArrowDownTrayIcon },
     { to: '/admin/accounts', labelKey: 'accounts', icon: BanknotesIcon },
     { to: '/admin/accounting', labelKey: 'accounting', icon: CalculatorIcon },
     { to: '/admin/enrollment', labelKey: 'enrollment', icon: ArrowUpCircleIcon },
     { to: '/registrar/requirements', labelKey: 'requirements', icon: ClipboardDocumentListIcon },
     { to: '/registrar/documents', labelKey: 'documents', icon: DocumentTextIcon },
-    { to: '/admin/audit-log', labelKey: 'audit_log', icon: DocumentMagnifyingGlassIcon },
     { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
+    { to: '/admin/administration', labelKey: 'administration', icon: AdjustmentsHorizontalIcon },
   ],
   REGISTRAR: [
     { to: '/registrar', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },

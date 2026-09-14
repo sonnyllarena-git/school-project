@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
 
@@ -90,7 +89,7 @@ export default function AdminUserManagement() {
   }
 
   return (
-    <Layout title="User Management">
+    <>
       {error && <div className="error-banner">{error}</div>}
       {notice && <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>{notice}</div>}
 
@@ -239,6 +238,6 @@ export default function AdminUserManagement() {
           </tbody>
         </table>
       </div>
-    </Layout>
+    </>
   );
 }

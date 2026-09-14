@@ -747,3 +747,25 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     cards still show; selected a 3/6-complete student on Enrollment, confirmed the warning banner text
     and count, clicked through to Requirements and confirmed the right student was pre-selected
 
+- [x] **Task AY: Admin Sidebar Cleanup — Administration Page**
+  - User-reported: the Admin sidebar had grown to 15 items, too much for one flat list. Brainstormed
+    scope (which items move, where they land) and confirmed with the user before building: consolidate
+    User Management, Import Roster, Data Export, and Audit Log — the infrequent, config-style tools —
+    into one new `/admin/administration` page with its own query-param-based tab bar (`?tab=users|
+    import|export|audit`, so a tab is directly linkable), rather than hiding them one level deeper
+    behind a collapsible section. Daily-workflow items (Students, Accounts, Accounting, Enrollment,
+    Requirements, Documents, Messages, Teachers/Subjects/Schedules) stayed on the main sidebar
+  - Implementation: stripped the `<Layout>` wrapper out of `AdminUserManagement.jsx`, `AdminImport.jsx`,
+    `AdminExport.jsx`, and `AdminAuditLog.jsx` (each now renders just its content), and built the new
+    `AdminAdministration.jsx` as the single page that owns the `<Layout>` + tab bar and swaps between
+    them. Removed their four standalone routes/nav entries in favor of the one consolidated route/entry
+  - Result: Admin's sidebar dropped from 15 items to 12 (Dashboard, Teachers, Subjects, Schedules,
+    Students, Accounts, Accounting, Enrollment, Requirements, Documents, Messages, Administration)
+  - Verify: confirmed the new sidebar count and labels in the browser; clicked through all 4
+    Administration tabs (User Management, Import Roster, Data Export, Audit Log) and confirmed each
+    renders its real content with working data (Audit Log's "Recent Activity (18)" count in particular,
+    after an initial false alarm that turned out to be a test-timing artifact, not a real bug); confirmed
+    the tab switch updates the URL query param; ran a full regression sweep of all 12 admin routes plus
+    the old removed routes (correctly redirect to /login rather than 404/blank) with no console or
+    backend errors
+

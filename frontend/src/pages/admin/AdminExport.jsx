@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -33,21 +32,19 @@ export default function AdminExport() {
   }
 
   return (
-    <Layout title="Data Export">
-      <div className="card">
-        <h3>Export Full Dataset (CSV)</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: -8 }}>
-          Plain CSV, no proprietary format or encryption — safe to hand to another system.
-        </p>
-        {error && <div className="error-banner">{error}</div>}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {TABLES.map(t => (
-            <button key={t} className="secondary" disabled={downloading === t} onClick={() => handleExport(t)}>
-              {downloading === t ? 'Downloading…' : `Export ${t}.csv`}
-            </button>
-          ))}
-        </div>
+    <div className="card">
+      <h3>Export Full Dataset (CSV)</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: -8 }}>
+        Plain CSV, no proprietary format or encryption — safe to hand to another system.
+      </p>
+      {error && <div className="error-banner">{error}</div>}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {TABLES.map(t => (
+          <button key={t} className="secondary" disabled={downloading === t} onClick={() => handleExport(t)}>
+            {downloading === t ? 'Downloading…' : `Export ${t}.csv`}
+          </button>
+        ))}
       </div>
-    </Layout>
+    </div>
   );
 }

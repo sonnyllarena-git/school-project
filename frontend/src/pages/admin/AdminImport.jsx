@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
 
@@ -29,28 +28,26 @@ export default function AdminImport() {
   }
 
   return (
-    <Layout title="Import Student Roster">
-      <div className="card">
-        <h3>Paste CSV</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: -8 }}>
-          Columns: <code>lrn,name,date_of_birth,gender,class_id</code>. Re-importing the same LRN updates that student instead of duplicating.
-        </p>
-        {error && <div className="error-banner">{error}</div>}
-        {result && (
-          <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
-            Imported: {result.inserted} new, {result.updated} updated ({result.total} total rows)
-          </div>
-        )}
-        <form onSubmit={handleImport}>
-          <textarea
-            value={csv} onChange={e => setCsv(e.target.value)} rows={10}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: 13, padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}
-          />
-          <div style={{ marginTop: 12 }}>
-            <button type="submit" disabled={loading}>{loading ? 'Importing…' : 'Import'}</button>
-          </div>
-        </form>
-      </div>
-    </Layout>
+    <div className="card">
+      <h3>Paste CSV</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: -8 }}>
+        Columns: <code>lrn,name,date_of_birth,gender,class_id</code>. Re-importing the same LRN updates that student instead of duplicating.
+      </p>
+      {error && <div className="error-banner">{error}</div>}
+      {result && (
+        <div className="error-banner" style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>
+          Imported: {result.inserted} new, {result.updated} updated ({result.total} total rows)
+        </div>
+      )}
+      <form onSubmit={handleImport}>
+        <textarea
+          value={csv} onChange={e => setCsv(e.target.value)} rows={10}
+          style={{ width: '100%', fontFamily: 'monospace', fontSize: 13, padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}
+        />
+        <div style={{ marginTop: 12 }}>
+          <button type="submit" disabled={loading}>{loading ? 'Importing…' : 'Import'}</button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -8,8 +8,6 @@ import AdminTeachers from './pages/admin/AdminTeachers';
 import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminSchedules from './pages/admin/AdminSchedules';
 import AdminStudents from './pages/admin/AdminStudents';
-import AdminImport from './pages/admin/AdminImport';
-import AdminExport from './pages/admin/AdminExport';
 import AdminAccounts from './pages/admin/AdminAccounts';
 import AdminEnrollment from './pages/admin/AdminEnrollment';
 import TeacherAttendance from './pages/teacher/TeacherAttendance';
@@ -24,9 +22,8 @@ import LegalDoc from './pages/LegalDoc';
 import Certificate from './pages/Certificate';
 import StatementOfAccount from './pages/StatementOfAccount';
 import ReportCard from './pages/ReportCard';
-import AdminAuditLog from './pages/admin/AdminAuditLog';
 import AdminAccounting from './pages/admin/AdminAccounting';
-import AdminUserManagement from './pages/admin/AdminUserManagement';
+import AdminAdministration from './pages/admin/AdminAdministration';
 import RegistrarDashboard from './pages/registrar/RegistrarDashboard';
 import RegistrarRequirements from './pages/registrar/RegistrarRequirements';
 import RegistrarDocuments from './pages/registrar/RegistrarDocuments';
@@ -57,11 +54,9 @@ export default function App() {
           <Route path="/admin/subjects" element={<ProtectedRoute role="ADMIN"><AdminSubjects /></ProtectedRoute>} />
           <Route path="/admin/schedules" element={<ProtectedRoute role="ADMIN"><AdminSchedules /></ProtectedRoute>} />
           <Route path="/admin/students" element={<ProtectedRoute role="ADMIN"><AdminStudents /></ProtectedRoute>} />
-          <Route path="/admin/import" element={<ProtectedRoute role="ADMIN"><AdminImport /></ProtectedRoute>} />
-          <Route path="/admin/export" element={<ProtectedRoute role="ADMIN"><AdminExport /></ProtectedRoute>} />
           <Route path="/admin/accounts" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><AdminAccounts /></ProtectedRoute>} />
           <Route path="/admin/accounting" element={<ProtectedRoute role={ADMIN_CASHIER}><AdminAccounting /></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute role="ADMIN"><AdminUserManagement /></ProtectedRoute>} />
+          <Route path="/admin/administration" element={<ProtectedRoute role="ADMIN"><AdminAdministration /></ProtectedRoute>} />
           <Route path="/admin/enrollment" element={<ProtectedRoute role={ADMIN_REGISTRAR}><AdminEnrollment /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/certificate" element={<ProtectedRoute role={ADMIN_REGISTRAR}><Certificate source="admin" /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/soa" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><StatementOfAccount source="admin" /></ProtectedRoute>} />
@@ -70,7 +65,6 @@ export default function App() {
           <Route path="/admin/students/:studentId/honorable-dismissal" element={<ProtectedRoute role={ADMIN_REGISTRAR}><HonorableDismissal /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/transcript" element={<ProtectedRoute role={ADMIN_REGISTRAR}><TranscriptOfRecords /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/receipt/:paymentId" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><OfficialReceipt /></ProtectedRoute>} />
-          <Route path="/admin/audit-log" element={<ProtectedRoute role="ADMIN"><AdminAuditLog /></ProtectedRoute>} />
 
           <Route path="/registrar" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarDashboard /></ProtectedRoute>} />
           <Route path="/registrar/requirements" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarRequirements /></ProtectedRoute>} />
