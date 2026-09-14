@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import StatCard from '../../components/StatCard';
+import RequirementsBadge from '../../components/RequirementsBadge';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
 
@@ -161,6 +162,13 @@ export default function AdminEnrollment() {
       </div>
 
       {error && <div className="error-banner">{error}</div>}
+
+      {studentId && (
+        <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Requirements:</span>
+          <RequirementsBadge studentId={studentId} />
+        </div>
+      )}
 
       {eligibility && (
         <div className="grid grid-3" style={{ marginBottom: 20 }}>

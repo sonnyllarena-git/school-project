@@ -1,17 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import Layout from '../../components/Layout';
 import StudentDetailModal from '../../components/StudentDetailModal';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
 import { STATUS_LABEL, STATUS_PILL, STATUS_OPTIONS } from '../../lib/accountStatus';
 
+// Placeholder gate only — not a real credential, just a deliberate extra
+// step before a permanent delete. Compared case-insensitively so caps-lock
+// doesn't trip someone up.
+const DELETION_PASSWORD = 'delete';
+
 export default function AdminStudents() {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [students, setStudents] = useState([]);
+  const [requirementsByStudent, setRequirementsByStudent] = useState({});
   const [error, setError] = useState('');
-  const [confirming, setConfirming] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [gradeFilter, setGradeFilter] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
@@ -28,6 +38,11 @@ export default function AdminStudents() {
         if (match) setSelected(match);
       }
     }).catch(err => setError(err.message));
+    // One bulk fetch for the whole roster's requirements-complete flag,
+    // rather than 150 individual per-row lookups.
+    api.listRequirementStudents(session.token)
+      .then(list => setRequirementsByStudent(Object.fromEntries(list.map(r => [r.student_id, r]))))
+      .catch(() => {});
   }
 
   useEffect(load, [session]);
@@ -48,15 +63,25 @@ export default function AdminStudents() {
     (!searchTerm || s.name.toLowerCase().includes(searchTerm) || s.lrn.includes(searchTerm))
   );
 
-  async function handleDelete(studentId) {
-    setError('');
+  function closeDeleteModal() {
+    setDeleteTarget(null);
+    setDeletePassword('');
+    setDeleteError('');
+  }
+
+  async function handleConfirmDelete() {
+    if (deletePassword.trim().toLowerCase() !== DELETION_PASSWORD) {
+      setDeleteError('Incorrect deletion password.');
+      return;
+    }
+    setDeleteError('');
     setDeleting(true);
     try {
-      await api.deleteStudent(session.token, studentId);
-      setConfirming(null);
+      await api.deleteStudent(session.token, deleteTarget.student_id);
+      closeDeleteModal();
       load();
     } catch (err) {
-      setError(err.message);
+      setDeleteError(err.message);
     } finally {
       setDeleting(false);
     }
@@ -107,39 +132,82 @@ export default function AdminStudents() {
           </div>
         </div>
         <table>
-          <thead><tr><th>LRN</th><th>Name</th><th>Grade</th><th>Section</th><th>Enrollment Status</th><th></th></tr></thead>
+          <thead><tr><th>LRN</th><th>Name</th><th>Grade</th><th>Section</th><th>Enrollment Status</th><th>Requirements</th><th></th></tr></thead>
           <tbody>
-            {filtered.map(s => (
-              <tr key={s.student_id} style={{ cursor: 'pointer' }} onDoubleClick={() => setSelected(s)}>
+            {filtered.map(s => {
+              const req = requirementsByStudent[s.student_id];
+              return (
+              <tr key={s.student_id} className="row-hover" onDoubleClick={() => setSelected(s)}>
                 <td>{s.lrn}</td>
                 <td>{s.name}</td>
                 <td>{s.grade_level ?? '—'}</td>
                 <td>{s.section || '—'}</td>
                 <td>
-                  <span className={`pill ${STATUS_PILL[s.enrollment_status]}`}>
+                  <span className={`pill ${STATUS_PILL[s.enrollment_status]}`} style={{ cursor: 'pointer' }}>
                     {STATUS_LABEL[s.enrollment_status] || s.enrollment_status}
                   </span>
                 </td>
                 <td onClick={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
-                  {confirming === s.student_id ? (
-                    <span style={{ display: 'flex', gap: 6 }}>
-                      <button className="danger" disabled={deleting} onClick={() => handleDelete(s.student_id)}>
-                        {deleting ? 'Deleting…' : 'Confirm delete'}
+                  {req && (
+                    req.complete ? (
+                      <span className="pill success" style={{ cursor: 'pointer' }}>Requirements Complete</span>
+                    ) : (
+                      <button
+                        style={{
+                          display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                          border: 'none', cursor: 'pointer', background: 'var(--danger-soft)', color: 'var(--danger)',
+                        }}
+                        onClick={() => navigate(`/registrar/requirements?student=${s.student_id}`)}
+                      >
+                        Pending Requirement
                       </button>
-                      <button className="ghost" onClick={() => setConfirming(null)}>Cancel</button>
-                    </span>
-                  ) : (
-                    <button className="danger" onClick={() => setConfirming(s.student_id)}>Delete</button>
+                    )
                   )}
                 </td>
+                <td onClick={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
+                  <button className="danger" onClick={() => setDeleteTarget(s)}>Delete</button>
+                </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {selected && (
         <StudentDetailModal token={session.token} student={selected} onClose={() => setSelected(null)} />
+      )}
+
+      {deleteTarget && (
+        <div className="modal-backdrop center" onClick={closeDeleteModal}>
+          <div className="modal-panel" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>Delete {deleteTarget.name}?</h3>
+              <button className="ghost icon-btn" onClick={closeDeleteModal}><XMarkIcon width={20} /></button>
+            </div>
+            <div className="modal-section">
+              <div className="error-banner">
+                This is permanent — it removes their attendance, grades, guardian links, and login account
+                (right-to-deletion, CLAUDE.md §1.1).
+              </div>
+              <label>Type the deletion password to confirm</label>
+              <input
+                type="password"
+                autoFocus
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError(''); }}
+                onKeyDown={e => e.key === 'Enter' && handleConfirmDelete()}
+              />
+              {deleteError && <div className="error-banner" style={{ marginTop: 10 }}>{deleteError}</div>}
+            </div>
+            <div className="modal-section" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="ghost" onClick={closeDeleteModal}>Cancel</button>
+              <button className="danger" disabled={deleting} onClick={handleConfirmDelete}>
+                {deleting ? 'Deleting…' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

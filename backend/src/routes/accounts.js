@@ -188,6 +188,65 @@ router.post('/students/:studentId/payments', requireRole(...PAYMENT_ROLES), asyn
   res.status(201).json(await getStudentAccount(req.params.studentId, targetYear));
 });
 
+// Official Receipt for one specific payment — every payment needs a way to
+// print a receipt, not just show up as a ledger row. balance_after is
+// computed as of THIS payment's recorded_at (not "today"), so an old
+// receipt still shows what was actually owed right after it was made.
+router.get('/students/:studentId/payments/:paymentId/receipt', requireRole(...VIEW_ROLES), async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT p.payment_id, p.student_id, p.school_year, p.amount, p.payment_date, p.method,
+            p.reference_no, p.notes, p.recorded_at,
+            s.name AS student_name, s.lrn, c.grade_level, c.section, u.name AS recorded_by_name
+     FROM payments p
+     JOIN students s ON s.student_id = p.student_id
+     LEFT JOIN classes c ON c.class_id = s.class_id
+     LEFT JOIN users u ON u.user_id = p.recorded_by
+     WHERE p.payment_id = $1 AND p.student_id = $2 AND s.school_id = $3`,
+    [req.params.paymentId, req.params.studentId, req.user.school_id]
+  );
+  const payment = rows[0];
+  if (!payment) return res.status(404).json({ error: 'payment not found' });
+
+  const [{ rows: schoolRows }, { rows: assessedRows }, { rows: paidToDateRows }] = await Promise.all([
+    pool.query('SELECT name, address, phone, deped_id FROM schools WHERE school_id = $1', [req.user.school_id]),
+    pool.query(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM fee_items WHERE student_id = $1 AND school_year = $2',
+      [payment.student_id, payment.school_year]
+    ),
+    // Compares recorded_at entirely in SQL, via a subquery keyed on
+    // payment_id, rather than round-tripping the timestamp through JS —
+    // TIMESTAMPTZ has more precision than a JS Date preserves, so passing
+    // payment.recorded_at back as a bound parameter silently fails to
+    // match the row it came from (paid_to_date would read 0 for every
+    // receipt, including the payment's own amount).
+    pool.query(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM payments
+       WHERE student_id = $1 AND school_year = $2
+         AND recorded_at <= (SELECT recorded_at FROM payments WHERE payment_id = $3)`,
+      [payment.student_id, payment.school_year, payment.payment_id]
+    ),
+  ]);
+
+  const totalAssessed = Number(assessedRows[0].total);
+  const paidToDate = Number(paidToDateRows[0].total);
+  const balanceAfter = Math.max(0, Math.round((totalAssessed - paidToDate) * 100) / 100);
+
+  res.json({ ...payment, school: schoolRows[0], total_assessed: totalAssessed, paid_to_date: paidToDate, balance_after: balanceAfter });
+});
+
+// For the Documents tab's Official Receipt card, which needs a payment_id
+// to link to but only has a student_id to start from.
+router.get('/students/:studentId/payments/latest', requireRole(...VIEW_ROLES), async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT p.payment_id FROM payments p
+     JOIN students s ON s.student_id = p.student_id
+     WHERE p.student_id = $1 AND s.school_id = $2
+     ORDER BY p.recorded_at DESC LIMIT 1`,
+    [req.params.studentId, req.user.school_id]
+  );
+  res.json(rows[0] || null);
+});
+
 // Fee-item corrections — for when a parent reviews the printed SOA for the
 // incoming grade and flags something wrong before paying. Not restricted to
 // a particular enrollment stage or school year at the API level (that's a UI

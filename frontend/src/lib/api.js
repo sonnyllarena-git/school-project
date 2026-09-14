@@ -87,6 +87,10 @@ export const api = {
     request(`/accounts/students/${studentId}/fee-items/${feeItemId}`, { method: 'PATCH', token, body: data }),
   deleteFeeItem: (token, studentId, feeItemId) =>
     request(`/accounts/students/${studentId}/fee-items/${feeItemId}`, { method: 'DELETE', token }),
+  getReceipt: (token, studentId, paymentId) =>
+    request(`/accounts/students/${studentId}/payments/${paymentId}/receipt`, { token }),
+  getLatestPayment: (token, studentId) =>
+    request(`/accounts/students/${studentId}/payments/latest`, { token }),
 
   getEligibility: (token, studentId) => request(`/enrollment/${studentId}/eligibility`, { token }),
   getEnrollment: (token, studentId) => request(`/enrollment/${studentId}`, { token }),

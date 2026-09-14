@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../lib/AuthContext';
 import { api } from '../../lib/api';
@@ -8,6 +9,7 @@ const STATUS_PILL = { PENDING: 'danger', SUBMITTED: 'warn', VERIFIED: 'success' 
 
 export default function RegistrarRequirements() {
   const { session } = useAuth();
+  const [searchParams] = useSearchParams();
   const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState('');
   const [checklist, setChecklist] = useState(null);
@@ -19,7 +21,9 @@ export default function RegistrarRequirements() {
   function loadStudents() {
     api.listRequirementStudents(session.token).then(list => {
       setStudents(list);
-      if (!studentId && list[0]) setStudentId(list[0].student_id);
+      const fromLink = searchParams.get('student');
+      if (fromLink && list.some(s => s.student_id === fromLink)) setStudentId(fromLink);
+      else if (!studentId && list[0]) setStudentId(list[0].student_id);
     }).catch(err => setError(err.message));
   }
 

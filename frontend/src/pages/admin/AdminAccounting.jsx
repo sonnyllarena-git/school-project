@@ -207,7 +207,7 @@ export default function AdminAccounting() {
               <thead>
                 <tr>
                   <th>Date</th><th>Student</th><th>Grade</th><th>School Year</th><th>Amount</th>
-                  <th>Method</th><th>Reference</th><th>Recorded By</th>
+                  <th>Method</th><th>Reference</th><th>Recorded By</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -229,6 +229,15 @@ export default function AdminAccounting() {
                     <td>{p.method.replace('_', ' ')}</td>
                     <td>{p.reference_no || '—'}</td>
                     <td>{p.recorded_by_name || '—'}</td>
+                    <td>
+                      <button
+                        className="secondary"
+                        style={{ fontSize: 12, padding: '4px 10px' }}
+                        onClick={() => window.open(`/admin/students/${p.student_id}/receipt/${p.payment_id}`, '_blank')}
+                      >
+                        Print Receipt
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

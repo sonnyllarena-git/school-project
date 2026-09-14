@@ -138,6 +138,7 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid var(--border); }
 td { padding: 10px; border-bottom: 1px solid var(--border); }
 tr:last-child td { border-bottom: none; }
+tr.row-hover:hover td { background: var(--accent-soft); }
 
 .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .pill.present, .pill.success { background: var(--success-soft); color: var(--success); }

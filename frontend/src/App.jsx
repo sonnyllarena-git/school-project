@@ -35,6 +35,7 @@ import Messages from './pages/Messages';
 import GoodMoralCertificate from './pages/GoodMoralCertificate';
 import HonorableDismissal from './pages/HonorableDismissal';
 import TranscriptOfRecords from './pages/TranscriptOfRecords';
+import OfficialReceipt from './pages/OfficialReceipt';
 
 const ADMIN_REGISTRAR = ['ADMIN', 'REGISTRAR'];
 const ADMIN_CASHIER = ['ADMIN', 'CASHIER'];
@@ -68,11 +69,12 @@ export default function App() {
           <Route path="/admin/students/:studentId/good-moral" element={<ProtectedRoute role={ADMIN_REGISTRAR}><GoodMoralCertificate /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/honorable-dismissal" element={<ProtectedRoute role={ADMIN_REGISTRAR}><HonorableDismissal /></ProtectedRoute>} />
           <Route path="/admin/students/:studentId/transcript" element={<ProtectedRoute role={ADMIN_REGISTRAR}><TranscriptOfRecords /></ProtectedRoute>} />
+          <Route path="/admin/students/:studentId/receipt/:paymentId" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><OfficialReceipt /></ProtectedRoute>} />
           <Route path="/admin/audit-log" element={<ProtectedRoute role="ADMIN"><AdminAuditLog /></ProtectedRoute>} />
 
           <Route path="/registrar" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarDashboard /></ProtectedRoute>} />
           <Route path="/registrar/requirements" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarRequirements /></ProtectedRoute>} />
-          <Route path="/registrar/documents" element={<ProtectedRoute role={ADMIN_REGISTRAR}><RegistrarDocuments /></ProtectedRoute>} />
+          <Route path="/registrar/documents" element={<ProtectedRoute role={ADMIN_REGISTRAR_CASHIER}><RegistrarDocuments /></ProtectedRoute>} />
 
           <Route path="/cashier" element={<ProtectedRoute role={ADMIN_CASHIER}><CashierDashboard /></ProtectedRoute>} />
 

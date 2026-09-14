@@ -698,3 +698,52 @@ Scope change directed by the user (not in the original CLAUDE.md MVP list) — s
     other grades); created a real student through Add Student with guardian fields and confirmed they
     persisted; deleted the test student and reseeded to a clean baseline afterward
 
+- [x] **Task AW: Admin Full Access to Registrar/Cashier Tabs (Standing Rule)**
+  - User-reported gap right after Task AV: `/registrar` and `/cashier` were the only two routes in the
+    whole app that excluded ADMIN (accidentally scoped to only their own role when first built) — Admin
+    couldn't view either dashboard at all. Widened both `ProtectedRoute` role lists, and added
+    Requirements/Documents to Admin's nav (genuinely new tools; left the two dashboard *routes*
+    reachable-but-not-nav-linked for Admin since Admin's own Dashboard/Accounting already cover similar
+    ground)
+  - User then said this should be a standing rule, not a one-off fix: every new role-gated tab/route
+    from here on must include ADMIN — backend `requireRole(...)`, frontend `ProtectedRoute`, and the nav
+    when it's a genuinely new tool. Saved to memory (`feedback_admin_full_access.md`) so this isn't
+    re-litigated in a future session
+  - Verify: logged in as Admin, confirmed Requirements/Documents now in the nav, and confirmed
+    `/registrar` and `/cashier` load correctly instead of bouncing to `/login`
+
+- [x] **Task AX: Official Receipts, Requirements↔Enrollment, Cashier Documents Access**
+  - Three more items picked from a "what's next" brainstorm, built together:
+    1. **Official Receipt printable** — every payment needed a way to print a receipt, not just show up
+       as a ledger row. New `GET /accounts/students/:studentId/payments/:paymentId/receipt` (balance
+       computed as of THAT payment, not "today"); new `OfficialReceipt.jsx` printable page at
+       `/admin/students/:studentId/receipt/:paymentId`; "Print Receipt" added to every payment row in
+       both `AccountView.jsx` (Accounts page + Student Detail modal — hidden on a student's own
+       self-view since `myAccount` doesn't return `student_id`, `getAccount` does) and the Accounting
+       ledger
+       - **Bug found and fixed while building this**: `paid_to_date` always read 0 (so every receipt
+         showed the full balance as unpaid) — `payment.recorded_at` was round-tripped through a JS
+         `Date` object and passed back as a query parameter, but TIMESTAMPTZ has more precision than a
+         JS Date preserves, so `recorded_at <= $param` silently never matched, not even the payment's
+         own row. Fixed by keeping the comparison entirely in SQL via a subquery keyed on `payment_id`,
+         never serializing the timestamp through JS at all
+       - **Second bug found while browser-testing**: the receipt number (`payment_id.slice(0,8)`) was
+         meant to shorten a UUID, but seed data uses human-readable IDs like `PAY-STU-000001-1` — every
+         seeded payment for a given student truncated to the same generic prefix. Fixed by just showing
+         the full `payment_id`
+    2. **Requirements tied to Enrollment**: `AdminEnrollment.jsx` now fetches the selected student's
+       requirements checklist and shows a non-blocking warning banner when not everything is VERIFIED,
+       with a link into Requirements (added `?student=` deep-link support there to match)
+    3. **Cashier's Documents access resolved**: `/registrar/documents` widened to include CASHIER, but
+       `RegistrarDocuments.jsx`'s `DOCUMENT_TYPES` now carry a `roles` field and the page filters by
+       `session.user.role` — Cashier sees only Statement of Account and the new Official Receipt card
+       (defaults to the student's most recent payment via new `GET .../payments/latest`); Good Moral/
+       Honorable Dismissal/Transcript/Certificate of Matriculation stay Admin+Registrar only
+  - Verify: curled the receipt endpoint before and after the timestamp fix (paid_to_date 0 → correct);
+    in the browser confirmed the full receipt renders with correct balance math, confirmed every ledger
+    row (Accounts + Accounting) has a working Print Receipt button; logged in as Cashier and confirmed
+    Documents nav appeared with exactly 2 cards (SOA, Official Receipt) and the receipt button was
+    enabled for a student with a payment on file; logged in as Registrar and confirmed all 7 document
+    cards still show; selected a 3/6-complete student on Enrollment, confirmed the warning banner text
+    and count, clicked through to Requirements and confirmed the right student was pre-selected
+

@@ -1,4 +1,5 @@
 import StatCard from './StatCard';
+import RequirementsBadge from './RequirementsBadge';
 import { STATUS_LABEL, STATUS_PILL } from '../lib/accountStatus';
 
 const peso = n => `₱${Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -27,10 +28,11 @@ export default function AccountView({ account }) {
         <StatCard label="Balance" value={peso(account.balance)} />
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
         <span className={`pill ${STATUS_PILL[account.status]}`} style={{ fontSize: 13, padding: '6px 14px' }}>
           {STATUS_LABEL[account.status] || account.status}
         </span>
+        <RequirementsBadge studentId={account.student_id} />
       </div>
 
       <div className="grid grid-2">
@@ -52,7 +54,7 @@ export default function AccountView({ account }) {
             <div className="empty-state">No payments recorded yet.</div>
           ) : (
             <table>
-              <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr></thead>
+              <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th>{account.student_id && <th></th>}</tr></thead>
               <tbody>
                 {account.payments.map(p => (
                   <tr key={p.payment_id}>
@@ -60,6 +62,21 @@ export default function AccountView({ account }) {
                     <td>{peso(p.amount)}</td>
                     <td>{p.method.replace('_', ' ')}</td>
                     <td>{p.reference_no || '—'}</td>
+                    {/* account.student_id only comes back on the admin/registrar/
+                        cashier getAccount response, not the student's own
+                        myAccount — a student can't reach the receipt route,
+                        so this naturally hides the link on their self-view. */}
+                    {account.student_id && (
+                      <td>
+                        <button
+                          className="ghost"
+                          style={{ padding: 0, fontSize: 12, textDecoration: 'underline', color: 'var(--accent)' }}
+                          onClick={() => window.open(`/admin/students/${account.student_id}/receipt/${p.payment_id}`, '_blank')}
+                        >
+                          Print Receipt
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -42,6 +42,7 @@ const NAV_BY_ROLE = {
     { to: '/cashier', labelKey: 'dashboard', end: true, icon: Squares2X2Icon },
     { to: '/admin/accounts', labelKey: 'accounts', icon: BanknotesIcon },
     { to: '/admin/accounting', labelKey: 'accounting', icon: CalculatorIcon },
+    { to: '/registrar/documents', labelKey: 'documents', icon: DocumentTextIcon },
     { to: '/messages', labelKey: 'messages', icon: ChatBubbleLeftRightIcon },
   ],
   TEACHER: [
